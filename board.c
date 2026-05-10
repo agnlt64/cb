@@ -7,6 +7,11 @@
 #include "board.h"
 #include "squares.h"
 
+#define W_KSIDE 0b1000
+#define W_QSIDE 0b0100
+#define B_KSIDE 0b0010
+#define B_QSIDE 0b0001
+
 void board_init(board_t* board)
 {
     board_from_fen(board, DEFAULT_FEN);
@@ -156,6 +161,51 @@ int gen_king_moves(board_t* board, int sq, move_t* moves)
         int captured = piece_type(at);
         moves[count++] = MOVE_ENCODE(sq, target, flag, captured);
     }
+
+    // todo: refactor this
+    if (board->turn == WHITE)
+    {
+        if (board->castling & W_KSIDE &&
+            board->squares[square_to_idx(F1)] == NO_PIECE &&
+            board->squares[square_to_idx(G1)] == NO_PIECE &&
+            !is_square_attacked(board, E1, BLACK) &&
+            !is_square_attacked(board, F1, BLACK) &&
+            !is_square_attacked(board, G1, BLACK)
+        )
+            moves[count++] = MOVE_ENCODE(square_to_idx(E1), square_to_idx(G1), FLAG_CASTLE_K, NO_PIECE);
+    
+        if (board->castling & W_QSIDE &&
+            board->squares[square_to_idx(B1)] == NO_PIECE &&
+            board->squares[square_to_idx(C1)] == NO_PIECE &&
+            board->squares[square_to_idx(D1)] == NO_PIECE &&
+            !is_square_attacked(board, E1, BLACK) &&
+            !is_square_attacked(board, D1, BLACK) &&
+            !is_square_attacked(board, C1, BLACK)
+        )
+            moves[count++] = MOVE_ENCODE(square_to_idx(E1), square_to_idx(C1), FLAG_CASTLE_Q, NO_PIECE);
+    }
+    else
+    {
+        if (board->castling & B_KSIDE &&
+            board->squares[square_to_idx(F8)] == NO_PIECE &&
+            board->squares[square_to_idx(G8)] == NO_PIECE &&
+            !is_square_attacked(board, E8, WHITE) &&
+            !is_square_attacked(board, F8, WHITE) &&
+            !is_square_attacked(board, G8, WHITE)
+        )
+            moves[count++] = MOVE_ENCODE(square_to_idx(E8), square_to_idx(G8), FLAG_CASTLE_K, NO_PIECE);
+    
+        if (board->castling & B_QSIDE &&
+            board->squares[square_to_idx(B8)] == NO_PIECE &&
+            board->squares[square_to_idx(C8)] == NO_PIECE &&
+            board->squares[square_to_idx(D8)] == NO_PIECE &&
+            !is_square_attacked(board, E8, WHITE) &&
+            !is_square_attacked(board, D8, WHITE) &&
+            !is_square_attacked(board, C8, WHITE)
+        )
+            moves[count++] = MOVE_ENCODE(square_to_idx(E8), square_to_idx(C8), FLAG_CASTLE_Q, NO_PIECE);
+    }
+
     return count;
 }
 
@@ -467,10 +517,10 @@ void board_make_move(board_t* board, move_t move)
     if (piece_type(moving) == KING)
         board->castling &= board->turn == WHITE ? ~0b1100 : ~0b0011;
 
-    if (from == square_to_idx(H1) || to == square_to_idx(H1)) board->castling &= ~0b1000;
-    if (from == square_to_idx(A1) || to == square_to_idx(A1)) board->castling &= ~0b0100;
-    if (from == square_to_idx(H8) || to == square_to_idx(H8)) board->castling &= ~0b0010;
-    if (from == square_to_idx(A8) || to == square_to_idx(A8)) board->castling &= ~0b0001;
+    if (from == square_to_idx(H1) || to == square_to_idx(H1)) board->castling &= ~W_KSIDE;
+    if (from == square_to_idx(A1) || to == square_to_idx(A1)) board->castling &= ~W_QSIDE;
+    if (from == square_to_idx(H8) || to == square_to_idx(H8)) board->castling &= ~B_KSIDE;
+    if (from == square_to_idx(A8) || to == square_to_idx(A8)) board->castling &= ~B_QSIDE;
 
     board->turn = board->turn == WHITE ? BLACK : WHITE;
 }
