@@ -481,7 +481,7 @@ void test_gen_moves()
     board_init(&board);
 
     move_t moves[512];
-    int n = board_gen_moves(&board, moves);
+    int n = gen_legal_moves(&board, moves);
     assert(n == 20 && "there are 20 legal moves in start position");
 
     printf("gen moves is ok ✅\n");

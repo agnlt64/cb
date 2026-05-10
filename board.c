@@ -343,7 +343,7 @@ int gen_pawn_moves(board_t* board, int sq, move_t* moves)
     return count;
 }
 
-int board_gen_moves(board_t* board, move_t* moves)
+int gen_moves(board_t* board, move_t* moves)
 {
     int count = 0;
 
@@ -369,6 +369,35 @@ int board_gen_moves(board_t* board, move_t* moves)
         }
     }
 
+    return count;
+}
+
+int gen_legal_moves(board_t* board, move_t* moves)
+{
+    move_t pseudo[512];
+    int n = gen_moves(board, pseudo);
+    int count = 0;
+    color_t turn = board->turn;
+
+    for (size_t i = 0; i < n; i++)
+    {
+        board_make_move(board, pseudo[i]);
+        int king_sq = -1;
+        for (int sq = 0; sq < 64; sq++)
+        {
+            if (board->squares[sq] == (turn | KING))
+            {
+                king_sq = sq;
+                break;
+            }
+        }
+
+        square_t king = idx_to_square(king_sq);
+        if (!is_square_attacked(board, king, board->turn))
+            moves[count++] = pseudo[i];
+        
+        board_unmake_move(board, pseudo[i]);
+    }
     return count;
 }
 
@@ -564,7 +593,7 @@ bool can_pawn_attack(board_t* board, square_t sq, color_t color)
     int idx = square_to_idx(sq);
     int sq_file = sq.file;
 
-    for (size_t i = 0; i < 8; i++)
+    for (size_t i = 0; i < 2; i++)
     {
         int target = idx + offsets[i];
         if (target < 0 || target >= FILES * RANKS)
