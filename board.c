@@ -9,6 +9,7 @@
 void board_init(board_t* board)
 {
     board_from_fen(board, DEFAULT_FEN);
+    board->turn = WHITE;
 }
 
 static const int knight_offsets[8] = {17, 15, 10, 6, -6, -10, -15, -17};
@@ -273,42 +274,78 @@ int gen_orth_moves(board_t* board, int sq, move_t* moves)
 int gen_pawn_moves(board_t* board, int sq, move_t* moves)
 {
     piece_t p = board->squares[sq];
-    color_t color = piece_color(p);
-    if (color != board->turn) return 0;
+    assert(piece_type(p) == PAWN && "invalid piece type for gen_pawn_moves");
+    if (piece_color(p) != board->turn) return 0;
 
     int count = 0;
-
-    int offsets[2] = {color == WHITE ? -8 : 8, color == WHITE ? -16 : 16};
-    int file_offsets[2] = {color == WHITE ? -1 : 1, color == WHITE ? 1 : -1};
-
     int sq_file = sq % FILES;
+    int sq_rank = sq / RANKS;
 
-    for (size_t i = 0; i < 2; i++)
+    int push = (board->turn == WHITE) ? 8 : -8;
+    int start_rank = (board->turn == WHITE) ? 1 : 6;
+    int promo_rank = (board->turn == WHITE) ? 7 : 0;
+
+    int fwd = sq + push;
+    if (fwd >= 0 && fwd < FILES * RANKS && piece_type(board->squares[fwd]) == NO_PIECE)
     {
-        int target = sq + offsets[i];
-        printf("target = %d\n", target);
+        if (fwd / RANKS == promo_rank)
+        {
+            moves[count++] = MOVE_ENCODE(sq, fwd, FLAG_PROMO_N, NO_PIECE);
+            moves[count++] = MOVE_ENCODE(sq, fwd, FLAG_PROMO_B, NO_PIECE);
+            moves[count++] = MOVE_ENCODE(sq, fwd, FLAG_PROMO_R, NO_PIECE);
+            moves[count++] = MOVE_ENCODE(sq, fwd, FLAG_PROMO_Q, NO_PIECE);
+        }
+        else
+        {
+            moves[count++] = MOVE_ENCODE(sq, fwd, FLAG_QUIET, NO_PIECE);
 
-        if (target < 0 || target >= FILES * RANKS)
+            if (sq_rank == start_rank)
+            {
+                int fwd2 = sq + 2 * push;
+                if (piece_type(board->squares[fwd2]) == NO_PIECE)
+                    moves[count++] = MOVE_ENCODE(sq, fwd2, FLAG_QUIET, NO_PIECE);
+            }
+        }
+    }
+
+    int cap_offsets[2] = {push - 1, push + 1};
+    int cap_file_offsets[2] = {-1, 1};
+
+    for (int i = 0; i < 2; i++)
+    {
+        int target = sq + cap_offsets[i];
+        if (target < 0 || target >= FILES * RANKS) continue;
+        if ((target % FILES) - sq_file != cap_file_offsets[i]) continue; // wrap
+
+        if (target == board->ep_square_idx)
+        {
+            moves[count++] = MOVE_ENCODE(sq, target, FLAG_EP, PAWN);
             continue;
-        
-        if ((target % FILES) - sq_file != file_offsets[i])
-            continue; // wrap around
+        }
 
         piece_t at = board->squares[target];
-        if (piece_color(at) == board->turn)
-            continue; // ally piece
+        if (piece_type(at) == NO_PIECE || piece_color(at) == board->turn) continue;
 
-        int flag = piece_type(at) == NO_PIECE ? FLAG_QUIET : FLAG_CAPTURE;
-        int captured = piece_type(at);
-        moves[count++] = MOVE_ENCODE(sq, target, flag, captured);
+        if (target / RANKS == promo_rank)
+        {
+            moves[count++] = MOVE_ENCODE(sq, target, FLAG_PROMO_N, piece_type(at));
+            moves[count++] = MOVE_ENCODE(sq, target, FLAG_PROMO_B, piece_type(at));
+            moves[count++] = MOVE_ENCODE(sq, target, FLAG_PROMO_R, piece_type(at));
+            moves[count++] = MOVE_ENCODE(sq, target, FLAG_PROMO_Q, piece_type(at));
+        }
+        else
+        {
+            moves[count++] = MOVE_ENCODE(sq, target, FLAG_CAPTURE, piece_type(at));
+        }
     }
+
     return count;
 }
 
 int board_gen_moves(board_t* board, move_t* moves)
 {
     int count = 0;
-    
+
     for (size_t sq = 0; sq < FILES * RANKS; sq++)
     {
         piece_t p = board->squares[sq];
@@ -320,6 +357,7 @@ int board_gen_moves(board_t* board, move_t* moves)
             case KNIGHT: count += gen_knight_moves(board, sq, moves + count); break;
             case BISHOP: count += gen_diag_moves(board, sq, moves + count); break;
             case ROOK: count += gen_orth_moves(board, sq, moves + count); break;
+            case PAWN: count += gen_pawn_moves(board, sq, moves + count); break;
             case QUEEN:
                 count += gen_diag_moves(board, sq, moves + count);
                 count += gen_orth_moves(board, sq, moves + count);
@@ -329,7 +367,7 @@ int board_gen_moves(board_t* board, move_t* moves)
                 break;
         }
     }
-    
+
     return count;
 }
 

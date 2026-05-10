@@ -453,27 +453,39 @@ void test_orth_moves()
     printf("orthogonal moves are ok ✅\n");
 }
 
-
+// todo: finish testing
 void test_pawn_moves()
 {
     board_t board = {0};
     board.turn = WHITE;
 
-    board.squares[square_to_idx(E2)] = WHITE | PAWN;
+    board.squares[square_to_idx(E7)] = WHITE | PAWN;
 
     int n;
     move_t moves[256];
 
-    n = gen_pawn_moves(&board, square_to_idx(E2), moves);
+    n = gen_pawn_moves(&board, square_to_idx(E7), moves);
 
-    for (int i = 0; i < n; i++)
-    {
-        move_print(moves[i]);
-    }
+    // for (int i = 0; i < n; i++)
+    // {
+    //     move_print(moves[i]);
+    // }
 
     printf("pawn moves are ok ✅\n");
 }
 
+// todo: finish testing
+void test_gen_moves()
+{
+    board_t board = {0};
+    board_init(&board);
+
+    move_t moves[512];
+    int n = board_gen_moves(&board, moves);
+    assert(n == 20 && "there are 20 legal moves in start position");
+
+    printf("gen moves is ok ✅\n");
+}
 
 int main()
 {
@@ -493,6 +505,7 @@ int main()
     test_diag_moves();
     test_orth_moves();
     test_pawn_moves();
+    test_gen_moves();
 
     return 0;
 }
