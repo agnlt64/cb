@@ -41,7 +41,7 @@ int gen_orth_moves(board_t* board, int sq, move_t* moves);
 int gen_pawn_moves(board_t* board, int sq, move_t* moves);
 
 void board_make_move(board_t* board, move_t move);
-void board_unmake_move(board_t* board, move_t* move);
+void board_unmake_move(board_t* board, move_t move);
 
 bool is_square_attacked(board_t* board, square_t sq, color_t color);
 bool can_knight_attack(board_t* board, square_t sq, color_t color);

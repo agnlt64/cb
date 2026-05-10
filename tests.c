@@ -506,6 +506,19 @@ void test_make_move()
     printf("make move is ok ✅\n");
 }
 
+// todo: finish testing
+void test_unmake_move()
+{
+    board_t board = {0};
+    board_from_fen(&board, "r1bq1rk1/pppnbpp1/4pn1p/3p4/2PP3B/2N1PN2/PP3PPP/R2QKB1R w KQ - 0 1");
+    board_print(&board);
+
+    board_unmake_move(&board, MOVE_ENCODE(square_to_idx(G1), square_to_idx(F3), 0, 0));
+    board_print(&board);
+    
+    printf("unmake move is ok ✅\n");
+}
+
 int main()
 {
     test_initial_state();
@@ -526,6 +539,7 @@ int main()
     test_pawn_moves();
     test_gen_moves();
     test_make_move();
+    test_unmake_move();
 
     return 0;
 }

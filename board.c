@@ -446,9 +446,61 @@ void board_make_move(board_t* board, move_t move)
     board->turn = board->turn == WHITE ? BLACK : WHITE;
 }
 
-void board_unmake_move(board_t* board, move_t* move)
+void board_unmake_move(board_t* board, move_t move)
 {
-    // todo
+    int from = MOVE_FROM(move);
+    int to = MOVE_TO(move);
+    int flag = MOVE_FLAGS(move);
+    int captured = MOVE_CAPTURED(move);
+
+    color_t opp = board->turn;
+    board->turn = board->turn == WHITE ? BLACK : WHITE;
+
+    board_history_t s = board->history[--board->history_top];
+    board->castling = s.castling;
+    board->ep_square_idx = s.ep_square_idx;
+    board->halfmove = s.halfmove;
+
+    if (board->turn == BLACK)
+        board->fullmove--;
+
+    board->squares[from] = board->squares[to];
+    board->squares[to] = captured ? (captured | opp) : NO_PIECE;
+
+    switch (flag)
+    {
+        case FLAG_EP:
+        {
+            int cap_sq = to + (board->turn == WHITE ? -8 : 8);
+            board->squares[cap_sq] = opp | PAWN;
+            board->squares[to] = NO_PIECE;
+            break;
+        }
+        case FLAG_CASTLE_K:
+        {
+            int rf = (board->turn == WHITE ? square_to_idx(H1) : square_to_idx(H8));
+            int rt = (board->turn == WHITE ? square_to_idx(F1) : square_to_idx(F8));
+            board->squares[rf] = board->squares[rt];
+            board->squares[rt] = NO_PIECE;
+            break;
+        }
+        case FLAG_CASTLE_Q:
+        {
+            int rf = (board->turn == WHITE ? square_to_idx(A1) : square_to_idx(A8));
+            int rt = (board->turn == WHITE ? square_to_idx(D1) : square_to_idx(D8));
+            board->squares[rf] = board->squares[rt];
+            board->squares[rt] = NO_PIECE;
+            break;
+        }
+        case FLAG_PROMO_N:
+        case FLAG_PROMO_B:
+        case FLAG_PROMO_R:
+        case FLAG_PROMO_Q:
+            board->squares[from] = board->turn | PAWN;
+            break;
+        default:
+            break;
+    }
 }
 
 bool is_square_attacked(board_t* board, square_t sq, color_t color)
