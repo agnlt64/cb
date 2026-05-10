@@ -5,6 +5,7 @@
 #include <assert.h>
 
 #include "board.h"
+#include "squares.h"
 
 void board_init(board_t* board)
 {
@@ -371,9 +372,78 @@ int board_gen_moves(board_t* board, move_t* moves)
     return count;
 }
 
-void board_make_move(board_t* board, move_t* move)
+void board_make_move(board_t* board, move_t move)
 {
-    // todo
+    int from = MOVE_FROM(move);
+    int to = MOVE_TO(move);
+    int flag = MOVE_FLAGS(move);
+    piece_t moving = board->squares[from];
+
+    if (piece_type(moving) == NO_PIECE || piece_color(moving) != board->turn) return;
+
+    board->history[board->history_top++] = (board_history_t){
+        .castling = board->castling,
+        .ep_square_idx = board->ep_square_idx,
+        .halfmove = board->halfmove
+    };
+
+    if (piece_type(moving) == PAWN || flag == FLAG_CAPTURE || flag == FLAG_EP)
+        board->halfmove = 0;
+    else
+        board->halfmove++;
+
+    if (board->turn == BLACK) board->fullmove++;
+
+    board->ep_square_idx = -1;
+    board->squares[to] = moving;
+    board->squares[from] = NO_PIECE;
+
+    switch (flag)
+    {
+        case FLAG_EP:
+        {
+            int cap_sq = to + (board->turn == WHITE ? -8 : 8);
+            board->squares[cap_sq] = NO_PIECE;
+            break;
+        }
+        case FLAG_CASTLE_K:
+        {
+            int rf = (board->turn == WHITE ? square_to_idx(H1) : square_to_idx(H8));
+            int rt = (board->turn == WHITE ? square_to_idx(F1) : square_to_idx(F8));
+            board->squares[rt] = board->squares[rf];
+            board->squares[rf] = NO_PIECE;
+            break;
+        }
+        case FLAG_CASTLE_Q:
+        {
+            int rf = (board->turn == WHITE ? square_to_idx(A1) : square_to_idx(A8));
+            int rt = (board->turn == WHITE ? square_to_idx(D1) : square_to_idx(D8));
+            board->squares[rt] = board->squares[rf];
+            board->squares[rf] = NO_PIECE;
+            break;
+        }
+        case FLAG_PROMO_N: board->squares[to] = board->turn | KNIGHT; break;
+        case FLAG_PROMO_B: board->squares[to] = board->turn | BISHOP; break;
+        case FLAG_PROMO_R: board->squares[to] = board->turn | ROOK; break;
+        case FLAG_PROMO_Q: board->squares[to] = board->turn | QUEEN; break;
+        default:
+        {
+            // double pawn push
+            if (piece_type(moving) == PAWN && (to - from == 16 || from - to == 16))
+                board->ep_square_idx = (from + to) / 2;
+            break;
+        }
+    }
+
+    if (piece_type(moving) == KING)
+        board->castling &= board->turn == WHITE ? ~0b1100 : ~0b0011;
+
+    if (from == square_to_idx(H1) || to == square_to_idx(H1)) board->castling &= ~0b1000;
+    if (from == square_to_idx(A1) || to == square_to_idx(A1)) board->castling &= ~0b0100;
+    if (from == square_to_idx(H8) || to == square_to_idx(H8)) board->castling &= ~0b0010;
+    if (from == square_to_idx(A8) || to == square_to_idx(A8)) board->castling &= ~0b0001;
+
+    board->turn = board->turn == WHITE ? BLACK : WHITE;
 }
 
 void board_unmake_move(board_t* board, move_t* move)

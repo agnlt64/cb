@@ -11,6 +11,12 @@
 #define RANKS 8
 #define FILES 8
 
+typedef struct board_history {
+    int castling;
+    int ep_square_idx;
+    int halfmove;
+} board_history_t;
+
 typedef struct board {
     int squares[FILES * RANKS];
     color_t turn;
@@ -18,6 +24,8 @@ typedef struct board {
     int ep_square_idx;
     int halfmove;
     int fullmove;
+    board_history_t history[512];
+    int history_top;
 } board_t;
 
 void board_init(board_t* board);
@@ -32,7 +40,7 @@ int gen_diag_moves(board_t* board, int sq, move_t* moves);
 int gen_orth_moves(board_t* board, int sq, move_t* moves);
 int gen_pawn_moves(board_t* board, int sq, move_t* moves);
 
-void board_make_move(board_t* board, move_t* move);
+void board_make_move(board_t* board, move_t move);
 void board_unmake_move(board_t* board, move_t* move);
 
 bool is_square_attacked(board_t* board, square_t sq, color_t color);

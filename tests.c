@@ -487,6 +487,25 @@ void test_gen_moves()
     printf("gen moves is ok ✅\n");
 }
 
+// todo: finish testing
+void test_make_move()
+{
+    board_t board = {0};
+    board_init(&board);
+    board_print(&board);
+
+    board_make_move(&board, MOVE_ENCODE(square_to_idx(D2), square_to_idx(D4), 0, 0));
+    board_print(&board);
+
+    board_make_move(&board, MOVE_ENCODE(square_to_idx(D7), square_to_idx(D5), 0, 0));
+    board_print(&board);
+
+    board_make_move(&board, MOVE_ENCODE(square_to_idx(G8), square_to_idx(F6), 0, 0));
+    board_print(&board);
+
+    printf("make move is ok ✅\n");
+}
+
 int main()
 {
     test_initial_state();
@@ -506,6 +525,7 @@ int main()
     test_orth_moves();
     test_pawn_moves();
     test_gen_moves();
+    test_make_move();
 
     return 0;
 }
