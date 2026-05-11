@@ -28,4 +28,4 @@ typedef enum move_flag
       ((from) | ((to) << 6) | ((flags) << 12) | ((captured) << 16))
 
 void move_print(move_t move);
-square_t move_to_square(move_t move);
+char* move_to_uci(move_t move);
