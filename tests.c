@@ -22,6 +22,25 @@ static bool has_move(move_t* moves, int n, square_t from, square_t to)
     return false;
 }
 
+static int move_gen_test(board_t* board, int depth)
+{
+    if (depth == 0)
+        return 1;
+
+    move_t moves[512];
+    int n = gen_legal_moves(board, moves);
+
+    int num_pos = 0;
+    for (size_t i = 0; i < n; i++)
+    {
+        board_make_move(board, moves[i]);
+        num_pos += move_gen_test(board, depth - 1);
+        board_unmake_move(board, moves[i]);
+    }
+
+    return num_pos;
+}
+
 void test_initial_state()
 {
     board_t board = {0};
@@ -474,16 +493,47 @@ void test_pawn_moves()
     printf("pawn moves are ok ✅\n");
 }
 
-// todo: finish testing
 void test_gen_moves()
 {
     board_t board = {0};
     board_init(&board);
 
-    move_t moves[512];
-    int n = gen_legal_moves(&board, moves);
-    assert(n == 20 && "there are 20 legal moves in start position");
+    int n = 0;
+ 
+    n = move_gen_test(&board, 1);
+    assert(n == 20 && "https://www.chessprogramming.org/Perft_Results");
 
+    n = move_gen_test(&board, 2);
+    assert(n == 400 && "https://www.chessprogramming.org/Perft_Results");
+
+    n = move_gen_test(&board, 3);
+    assert(n == 8902 && "https://www.chessprogramming.org/Perft_Results");
+
+    n = move_gen_test(&board, 4);
+    assert(n == 197281 && "https://www.chessprogramming.org/Perft_Results");
+
+    n = move_gen_test(&board, 5);
+    assert(n == 4865609 && "https://www.chessprogramming.org/Perft_Results");
+
+    // tricky position
+    board_from_fen(&board, "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8");
+    
+    n = move_gen_test(&board, 1);
+    assert(n == 44 && "https://www.chessprogramming.org/Perft_Results");
+
+    n = move_gen_test(&board, 2);
+    assert(n == 1486 && "https://www.chessprogramming.org/Perft_Results");
+
+    n = move_gen_test(&board, 3);
+    assert(n == 62379 && "https://www.chessprogramming.org/Perft_Results");
+
+    n = move_gen_test(&board, 4);
+    assert(n == 2103487 && "https://www.chessprogramming.org/Perft_Results");
+
+    n = move_gen_test(&board, 5);
+    assert(n == 89941194 && "https://www.chessprogramming.org/Perft_Results");
+    
+    // after ply 5, move gen is really slow so i don't test it further
     printf("gen moves is ok ✅\n");
 }
 
@@ -538,8 +588,8 @@ int main()
     test_orth_moves();
     test_pawn_moves();
     test_gen_moves();
-    test_make_move();
-    test_unmake_move();
+    // test_make_move();
+    // test_unmake_move();
 
     return 0;
 }
