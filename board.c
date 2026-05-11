@@ -465,7 +465,10 @@ int gen_capture_moves(board_t* board, move_t* moves)
 
     for (size_t i = 0; i < n; i++)
     {
-        if (MOVE_FLAGS(moves[i]) == FLAG_CAPTURE || FLAG_EP || FLAG_PROMO_B || FLAG_PROMO_N || FLAG_PROMO_Q || FLAG_PROMO_R)
+        int flag = MOVE_FLAGS(m[i]);
+        if (flag == FLAG_CAPTURE || flag == FLAG_EP ||
+            flag == FLAG_PROMO_N || flag == FLAG_PROMO_B ||
+            flag == FLAG_PROMO_R || flag == FLAG_PROMO_Q)
             moves[count++] = m[i];
     }
     return count;
