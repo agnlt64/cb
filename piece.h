@@ -27,8 +27,19 @@ static const int CHAR_TO_PIECE[128] = {
     ['q'] = QUEEN
 };
 
+static const int PIECE_VALUES[7] = {
+    [NO_PIECE] = 0,
+    [KING] = 100000,
+    [PAWN] = 100,
+    [KNIGHT] = 300,
+    [BISHOP] = 300,
+    [ROOK] = 500,
+    [QUEEN] = 900
+};
+
 typedef int piece_t;
 
 piece_type_t piece_type(piece_t piece);
 color_t piece_color(piece_t piece);
 char piece_string(piece_t piece);
+int piece_value(piece_t piece);

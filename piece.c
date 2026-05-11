@@ -21,3 +21,8 @@ char piece_string(piece_t piece)
     char c = PIECE_CHARS[type];
     return color == WHITE ? toupper(c) : c;
 }
+
+int piece_value(piece_t piece)
+{
+    return PIECE_VALUES[piece_type(piece)];
+}

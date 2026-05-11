@@ -393,7 +393,7 @@ int gen_pawn_moves(board_t* board, int sq, move_t* moves)
     return count;
 }
 
-int gen_moves(board_t* board, move_t* moves)
+int gen_pseudo_legal_moves(board_t* board, move_t* moves)
 {
     int count = 0;
 
@@ -422,31 +422,51 @@ int gen_moves(board_t* board, move_t* moves)
     return count;
 }
 
+int find_king(board_t* board, color_t turn)
+{
+    int king_sq = -1;
+    for (int sq = 0; sq < 64; sq++)
+    {
+        if (board->squares[sq] == (turn | KING))
+        {
+            king_sq = sq;
+            break;
+        }
+    }
+    return king_sq;
+}
+
 int gen_legal_moves(board_t* board, move_t* moves)
 {
     move_t pseudo[512];
-    int n = gen_moves(board, pseudo);
+    int n = gen_pseudo_legal_moves(board, pseudo);
     int count = 0;
     color_t turn = board->turn;
 
     for (size_t i = 0; i < n; i++)
     {
         board_make_move(board, pseudo[i]);
-        int king_sq = -1;
-        for (int sq = 0; sq < 64; sq++)
-        {
-            if (board->squares[sq] == (turn | KING))
-            {
-                king_sq = sq;
-                break;
-            }
-        }
+        int king_sq = find_king(board, turn);
 
         square_t king = idx_to_square(king_sq);
         if (!is_square_attacked(board, king, board->turn))
             moves[count++] = pseudo[i];
         
         board_unmake_move(board, pseudo[i]);
+    }
+    return count;
+}
+
+int gen_capture_moves(board_t* board, move_t* moves)
+{
+    move_t m[512];
+    int n = gen_legal_moves(board, m);
+    int count = 0;
+
+    for (size_t i = 0; i < n; i++)
+    {
+        if (MOVE_FLAGS(moves[i]) == FLAG_CAPTURE || FLAG_EP || FLAG_PROMO_B || FLAG_PROMO_N || FLAG_PROMO_Q || FLAG_PROMO_R)
+            moves[count++] = m[i];
     }
     return count;
 }
