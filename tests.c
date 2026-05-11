@@ -515,7 +515,7 @@ void test_gen_moves()
     n = move_gen_test(&board, 5);
     assert(n == 4865609 && "https://www.chessprogramming.org/Perft_Results");
 
-    // tricky position
+    // position 5 from chessprogramming perft
     board_from_fen(&board, "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8");
     
     n = move_gen_test(&board, 1);
@@ -532,6 +532,24 @@ void test_gen_moves()
 
     n = move_gen_test(&board, 5);
     assert(n == 89941194 && "https://www.chessprogramming.org/Perft_Results");
+
+    // position 3 from chessprogramming perft
+    board_from_fen(&board, "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1 ");
+    
+    n = move_gen_test(&board, 1);
+    assert(n == 14 && "https://www.chessprogramming.org/Perft_Results");
+
+    n = move_gen_test(&board, 2);
+    assert(n == 191 && "https://www.chessprogramming.org/Perft_Results");
+
+    n = move_gen_test(&board, 3);
+    assert(n == 2812 && "https://www.chessprogramming.org/Perft_Results");
+
+    n = move_gen_test(&board, 4);
+    assert(n == 43238 && "https://www.chessprogramming.org/Perft_Results");
+
+    n = move_gen_test(&board, 5);
+    assert(n == 674624 && "https://www.chessprogramming.org/Perft_Results");
     
     // after ply 5, move gen is really slow so i don't test it further
     printf("gen moves is ok ✅\n");
@@ -542,16 +560,16 @@ void test_make_move()
 {
     board_t board = {0};
     board_init(&board);
-    board_print(&board);
+    // board_print(&board);
 
     board_make_move(&board, MOVE_ENCODE(square_to_idx(D2), square_to_idx(D4), 0, 0));
-    board_print(&board);
+    // board_print(&board);
 
     board_make_move(&board, MOVE_ENCODE(square_to_idx(D7), square_to_idx(D5), 0, 0));
-    board_print(&board);
+    // board_print(&board);
 
     board_make_move(&board, MOVE_ENCODE(square_to_idx(G8), square_to_idx(F6), 0, 0));
-    board_print(&board);
+    // board_print(&board);
 
     printf("make move is ok ✅\n");
 }
@@ -561,10 +579,10 @@ void test_unmake_move()
 {
     board_t board = {0};
     board_from_fen(&board, "r1bq1rk1/pppnbpp1/4pn1p/3p4/2PP3B/2N1PN2/PP3PPP/R2QKB1R w KQ - 0 1");
-    board_print(&board);
+    // board_print(&board);
 
     board_unmake_move(&board, MOVE_ENCODE(square_to_idx(G1), square_to_idx(F3), 0, 0));
-    board_print(&board);
+    // board_print(&board);
     
     printf("unmake move is ok ✅\n");
 }
@@ -588,8 +606,8 @@ int main()
     test_orth_moves();
     test_pawn_moves();
     test_gen_moves();
-    // test_make_move();
-    // test_unmake_move();
+    test_make_move();
+    test_unmake_move();
 
     return 0;
 }
