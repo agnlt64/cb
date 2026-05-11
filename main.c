@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <math.h>
+#include <string.h>
 
 #include "board.h"
 
@@ -169,14 +170,101 @@ move_t search(board_t* board, int depth)
     return best;
 }
 
-int main()
+static move_t parse_uci_move(board_t* board, const char* s)
+{
+    int from = (s[1] - '1') * 8 + (s[0] - 'a');
+    int to   = (s[3] - '1') * 8 + (s[2] - 'a');
+    char promo = (s[4] && s[4] != ' ' && s[4] != '\n' && s[4] != '\r') ? s[4] : 0;
+
+    move_t moves[256];
+    int n = gen_legal_moves(board, moves);
+    for (int i = 0; i < n; i++)
+    {
+        if (MOVE_FROM(moves[i]) != from || MOVE_TO(moves[i]) != to) continue;
+        if (promo)
+        {
+            int flag = MOVE_FLAGS(moves[i]);
+            if (promo == 'q' && flag != FLAG_PROMO_Q) continue;
+            if (promo == 'r' && flag != FLAG_PROMO_R) continue;
+            if (promo == 'b' && flag != FLAG_PROMO_B) continue;
+            if (promo == 'n' && flag != FLAG_PROMO_N) continue;
+        }
+        return moves[i];
+    }
+    return 0;
+}
+
+void parse_position(board_t* board, const char* line)
+{
+    const char* p = line + 9; // skip "position "
+
+    if (strncmp(p, "startpos", 8) == 0)
+    {
+        board_init(board);
+        p += 8;
+    }
+    else if (strncmp(p, "fen", 3) == 0)
+    {
+        p += 4; // skip "fen "
+        board_from_fen(board, p);
+        int spaces = 0;
+        while (*p && spaces < 6) { if (*p++ == ' ') spaces++; }
+    }
+
+    p = strstr(p, "moves");
+    if (!p) return;
+    p += 6; // skip "moves "
+
+    while (*p && *p != '\n' && *p != '\r')
+    {
+        move_t m = parse_uci_move(board, p);
+        if (m) board_make_move(board, m);
+        while (*p && *p != ' ' && *p != '\n' && *p != '\r') p++;
+        while (*p == ' ') p++;
+    }
+}
+
+void uci_loop()
 {
     board_t board = {0};
-    board_from_fen(&board, "r3k2r/p1ppqpb1/Bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPB1PPP/R3K2R b KQkq - 0 1");
+    char line[4096];
 
-    printf("best move = ");
-    move_print(search(&board, 4));
-    printf("searched %d positions\n", total_positions);
+    while (fgets(line, sizeof(line), stdin))
+    {
+        if (strncmp(line, "ucinewgame", 10) == 0)
+        {
+            board_init(&board);
+        }
+        else if (strncmp(line, "isready", 7) == 0)
+        {
+            printf("readyok\n");
+        }
+        else if (strncmp(line, "uci", 3) == 0)
+        {
+            printf("id name OutOfStockFish\n");
+            printf("id author agnlt64\n");
+            printf("uciok\n");
+        }
+        else if (strncmp(line, "position", 8) == 0)
+        {
+            parse_position(&board, line);
+        }
+        else if (strncmp(line, "go", 2) == 0)
+        {
+            move_t best = search(&board, 4);
+            printf("bestmove %s\n", move_to_uci(best));
+        }
+        else if (strncmp(line, "quit", 4) == 0)
+        {
+            break;
+        }
+        fflush(stdout);
+    }
+}
+
+int main()
+{
+    uci_loop();
 
     return 0;
 }
