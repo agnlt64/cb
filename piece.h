@@ -43,3 +43,4 @@ piece_type_t piece_type(piece_t piece);
 color_t piece_color(piece_t piece);
 char piece_string(piece_t piece);
 int piece_value(piece_t piece);
+int piece_square_value(piece_t piece, int sq);

@@ -75,11 +75,20 @@ void order_moves(board_t* board, move_t* moves, int n)
 
 int evaluate(board_t* board)
 {
-    int w_mat = count_material(board, WHITE);
-    int b_mat = count_material(board, BLACK);
+    int eval = 0;
+
+    for (int sq = 0; sq < 64; sq++)
+    {
+        piece_t p = board->squares[sq];
+        if (piece_type(p) == NO_PIECE)
+            continue;
+
+        int val = piece_value(p) + piece_square_value(p, sq);
+        eval += piece_color(p) == WHITE ? val : -val;
+    }
 
     int sign = board->turn == WHITE ? 1 : -1;
-    return sign * (w_mat - b_mat);
+    return sign * eval;
 }
 
 int search_captures(board_t* board, int alpha, int beta)
@@ -251,7 +260,7 @@ void uci_loop()
         }
         else if (strncmp(line, "go", 2) == 0)
         {
-            move_t best = search(&board, 4);
+            move_t best = search(&board, 6);
             printf("bestmove %s\n", move_to_uci(best));
         }
         else if (strncmp(line, "quit", 4) == 0)
