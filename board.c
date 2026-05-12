@@ -1,4 +1,3 @@
-
 #include <string.h>
 #include <ctype.h>
 #include <stdio.h>
@@ -12,10 +11,36 @@
 #define B_KSIDE 0b0010
 #define B_QSIDE 0b0001
 
+uint64_t zobrist_from_board(board_t* board)
+{
+    uint64_t z = 0;
+    zobrist_t* bz = &board->zobrist;
+
+    for (size_t sq = 0; sq < 64; sq++)
+    {
+        piece_t p = board->squares[sq];
+        if (piece_type(p) != NO_PIECE)
+            z ^= bz->pieces[p][sq];
+    }
+
+    if (board->ep_square_idx != -1)
+        z ^= bz->en_passant[idx_to_square(board->ep_square_idx).file];
+
+    if (board->turn == BLACK)
+        z ^= bz->turn;
+
+    z ^= bz->castling[board->castling];
+
+    return z;
+}
+
 void board_init(board_t* board)
 {
     board_from_fen(board, DEFAULT_FEN);
     board->turn = WHITE;
+
+    zobrist_init(&board->zobrist);
+    board->hash = zobrist_from_board(board);
 }
 
 static const int knight_offsets[8] = {17, 15, 10, 6, -6, -10, -15, -17};

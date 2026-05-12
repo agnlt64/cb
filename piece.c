@@ -34,7 +34,7 @@ int flip(int sq)
     return (7 - sq / 8) * 8 + sq % 8;
 }
 
-int piece_square_value(piece_t piece, int sq)
+int piece_square_value(piece_t piece, int sq, int material)
 {
     int idx = piece_color(piece) == WHITE ? sq : flip(sq);
 
@@ -45,7 +45,7 @@ int piece_square_value(piece_t piece, int sq)
         case BISHOP: return bishop_table[idx];
         case ROOK: return rook_table[idx];
         case QUEEN: return queen_table[idx];
-        case KING: return king_midgame_table[idx]; // todo: use endgame table too
+        case KING: return material <= 2600 ? king_endgame_table[idx] : king_midgame_table[idx];
         default: return 0;
     }
 }

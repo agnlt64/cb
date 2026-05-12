@@ -83,7 +83,8 @@ int evaluate(board_t* board)
         if (piece_type(p) == NO_PIECE)
             continue;
 
-        int val = piece_value(p) + piece_square_value(p, sq);
+        int material = count_material(board, board->turn);
+        int val = piece_value(p) + piece_square_value(p, sq, material);
         eval += piece_color(p) == WHITE ? val : -val;
     }
 
@@ -134,10 +135,7 @@ int negamax(board_t* board, int depth, int alpha, int beta)
     }
 
     if (depth == 0)
-    {
         return search_captures(board, alpha, beta);
-        // return evaluate(board);
-    }
 
     order_moves(board, moves, n);
 
@@ -273,7 +271,11 @@ void uci_loop()
 
 int main()
 {
-    uci_loop();
+    // uci_loop();
+    board_t board = {0};
+    board_init(&board);
+
+    printf("board hash = %llu\n", board.hash);
 
     return 0;
 }

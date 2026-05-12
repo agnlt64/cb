@@ -16,6 +16,21 @@ typedef enum piece_type {
     QUEEN,
 } piece_type_t;
 
+static const piece_type_t ALL_PIECES[12] = {
+    KING | WHITE,
+    PAWN | WHITE,
+    KNIGHT | WHITE,
+    BISHOP | WHITE,
+    ROOK | WHITE,
+    QUEEN | WHITE,
+    KING | BLACK,
+    PAWN | BLACK,
+    KNIGHT | BLACK,
+    BISHOP | BLACK,
+    ROOK | BLACK,
+    QUEEN | BLACK,
+};
+
 static const char PIECE_CHARS[] = {'.', 'k', 'p', 'n', 'b', 'r', 'q'};
 static const int CHAR_TO_PIECE[128] = {
     ['.'] = NO_PIECE,
@@ -29,7 +44,7 @@ static const int CHAR_TO_PIECE[128] = {
 
 static const int PIECE_VALUES[7] = {
     [NO_PIECE] = 0,
-    [KING] = 100000,
+    [KING] = 0,
     [PAWN] = 100,
     [KNIGHT] = 300,
     [BISHOP] = 300,
@@ -43,4 +58,4 @@ piece_type_t piece_type(piece_t piece);
 color_t piece_color(piece_t piece);
 char piece_string(piece_t piece);
 int piece_value(piece_t piece);
-int piece_square_value(piece_t piece, int sq);
+int piece_square_value(piece_t piece, int sq, int material);

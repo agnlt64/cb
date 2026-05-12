@@ -5,6 +5,7 @@
 #include "piece.h"
 #include "move.h"
 #include "square.h"
+#include "zobrist.h"
 
 #define DEFAULT_FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
@@ -26,6 +27,8 @@ typedef struct board {
     int fullmove;
     board_history_t history[512];
     int history_top;
+    zobrist_t zobrist;
+    uint64_t hash;
 } board_t;
 
 void board_init(board_t* board);
