@@ -122,6 +122,9 @@ int search_captures(board_t* board, int alpha, int beta)
 int negamax(board_t* board, int depth, int alpha, int beta)
 {
     total_positions++;
+
+    // 50-move rule
+    if (board->halfmove >= 100) return 0;
     
     tt_entry_t* entry = tt_get(board->hash);
     if (entry && entry->depth >= depth)
