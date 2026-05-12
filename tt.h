@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#define TT_SIZE 1<<24
+#define TT_SIZE (1<<20)
 
 typedef struct tt_entry {
     uint64_t hash;

@@ -119,17 +119,22 @@ int search_captures(board_t* board, int alpha, int beta)
     return alpha;
 }
 
+bool is_repetition(board_t* board)
+{
+    int limit = board->history_top - board->halfmove;
+    for (int i = board->history_top; i >= limit; i -= 2)
+    {
+        if (board->history[i].hash == board->hash)
+            return true;
+    }
+    return false;
+}
+
 int negamax(board_t* board, int depth, int alpha, int beta)
 {
     total_positions++;
 
-    // 50-move rule
-    if (board->halfmove >= 100) return 0;
-    
-    tt_entry_t* entry = tt_get(board->hash);
-    if (entry && entry->depth >= depth)
-        return entry->eval;
-
+    // important: always keep this at the top of the function
     move_t moves[256];
     int n = gen_legal_moves(board, moves);
     if (n == 0)
@@ -137,6 +142,13 @@ int negamax(board_t* board, int depth, int alpha, int beta)
         int king_sq = find_king(board, board->turn);
         return is_square_attacked(board, idx_to_square(king_sq), board->turn == WHITE ? BLACK : WHITE) ? -100000 : 0;
     }
+
+    // 50-move rule and threefold repetition (one fold here)
+    if (board->halfmove >= 100 || is_repetition(board)) return 0;
+    
+    tt_entry_t* entry = tt_get(board->hash);
+    if (entry && entry->depth >= depth)
+        return entry->eval;
 
     if (depth == 0)
         return search_captures(board, alpha, beta);
@@ -278,7 +290,8 @@ int main()
 {
 #ifdef NO_UCI
     board_t board = {0};
-    board_from_fen(&board, "r3k2r/p1ppqpb1/Bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPB1PPP/R3K2R b KQkq - 0 1");
+    // board_from_fen(&board, "r3k2r/p1ppqpb1/Bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPB1PPP/R3K2R b KQkq - 0 1");
+    board_from_fen(&board, "8/3Q4/8/4PK1k/8/8/8/8 w - - 1 75");
 
     printf("board hash = %llu\n", board.hash);
     printf("best move = %s\n", move_to_uci(search(&board, 4)));
