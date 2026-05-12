@@ -17,7 +17,11 @@ tests: tests.c $(DEPS) $(MT_OBJ)
 	./bin/tests
 
 chess: main.c $(DEPS) $(MT_OBJ)
+	$(CC) -DNO_UCI main.c $(DEPS) $(MT_OBJ) -o bin/main
+
+install:
 	$(CC) main.c $(DEPS) $(MT_OBJ) -o bin/main
+	cp bin/main ~/dev/en_croissant_engines
 
 clean:
 	rm bin/*

@@ -271,11 +271,14 @@ void uci_loop()
 
 int main()
 {
-    // uci_loop();
+#ifdef NO_UCI
     board_t board = {0};
     board_init(&board);
 
     printf("board hash = %llu\n", board.hash);
+#else
+    uci_loop();
+#endif
 
     return 0;
 }
