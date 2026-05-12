@@ -3,12 +3,7 @@
 #include <string.h>
 
 #include "board.h"
-
-#define PAWN_VAL 100
-#define KNIGHT_VAL 300
-#define BISHOP_VAL 300
-#define ROOK_VAL 500
-#define QUEEN_VAL 900
+#include "tt.h"
 
 int total_positions = 0;
 
@@ -77,13 +72,14 @@ int evaluate(board_t* board)
 {
     int eval = 0;
 
+    int material = count_material(board, board->turn);
+
     for (int sq = 0; sq < 64; sq++)
     {
         piece_t p = board->squares[sq];
         if (piece_type(p) == NO_PIECE)
             continue;
 
-        int material = count_material(board, board->turn);
         int val = piece_value(p) + piece_square_value(p, sq, material);
         eval += piece_color(p) == WHITE ? val : -val;
     }
@@ -126,6 +122,11 @@ int search_captures(board_t* board, int alpha, int beta)
 int negamax(board_t* board, int depth, int alpha, int beta)
 {
     total_positions++;
+    
+    tt_entry_t* entry = tt_get(board->hash);
+    if (entry && entry->depth >= depth)
+        return entry->eval;
+
     move_t moves[256];
     int n = gen_legal_moves(board, moves);
     if (n == 0)
@@ -150,6 +151,7 @@ int negamax(board_t* board, int depth, int alpha, int beta)
         if (eval > alpha) alpha = eval;
     }
 
+    tt_set(board->hash, depth, alpha);
     return alpha;
 }
 
@@ -273,9 +275,11 @@ int main()
 {
 #ifdef NO_UCI
     board_t board = {0};
-    board_init(&board);
+    board_from_fen(&board, "r3k2r/p1ppqpb1/Bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPB1PPP/R3K2R b KQkq - 0 1");
 
     printf("board hash = %llu\n", board.hash);
+    printf("best move = %s\n", move_to_uci(search(&board, 4)));
+    printf("total positions = %d\n", total_positions);
 #else
     uci_loop();
 #endif

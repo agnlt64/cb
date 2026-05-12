@@ -1,5 +1,5 @@
 CC=gcc
-DEPS=board.c piece.c square.c move.c zobrist.c
+DEPS=board.c piece.c square.c move.c zobrist.c tt.c
 MT_OBJ=bin/mt19937-64.o
 
 .PHONY: all clean

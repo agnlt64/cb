@@ -13,25 +13,25 @@
 
 uint64_t zobrist_from_board(board_t* board)
 {
-    uint64_t z = 0;
-    zobrist_t* bz = &board->zobrist;
+    uint64_t new_key = 0;
+    zobrist_t* z = &board->zobrist;
 
     for (size_t sq = 0; sq < 64; sq++)
     {
         piece_t p = board->squares[sq];
         if (piece_type(p) != NO_PIECE)
-            z ^= bz->pieces[p][sq];
+            new_key ^= z->pieces[p][sq];
     }
 
     if (board->ep_square_idx != -1)
-        z ^= bz->en_passant[idx_to_square(board->ep_square_idx).file];
+        new_key ^= z->en_passant[idx_to_square(board->ep_square_idx).file];
 
     if (board->turn == BLACK)
-        z ^= bz->turn;
+        new_key ^= z->turn;
 
-    z ^= bz->castling[board->castling];
+    new_key ^= z->castling[board->castling];
 
-    return z;
+    return new_key;
 }
 
 void board_init(board_t* board)
@@ -105,13 +105,13 @@ void board_from_fen(board_t* board, const char* fen)
         if (space_count == 2)
         {
             if (c == 'K')
-                board->castling |= 8; // 0b1000
+                board->castling |= W_KSIDE;
             else if (c == 'Q')
-                board->castling |= 4; // 0b0100
+                board->castling |= W_QSIDE;
             else if (c == 'k')
-                board->castling |= 2; // 0b0010
+                board->castling |= B_KSIDE;
             else if (c == 'q')
-                board->castling |= 1; // 0b0001
+                board->castling |= B_QSIDE;
             else if (c == '-')
                 board->castling = 0;
         }
@@ -140,6 +140,9 @@ void board_from_fen(board_t* board, const char* fen)
         if (space_count == 5 && isdigit(c))
             board->fullmove = board->fullmove * 10 + (c - '0');
     }
+
+    zobrist_init(&board->zobrist);
+    board->hash = zobrist_from_board(board);
 }
 
 piece_t board_at(board_t* board, square_t sq)
@@ -505,14 +508,24 @@ void board_make_move(board_t* board, move_t move)
     int to = MOVE_TO(move);
     int flag = MOVE_FLAGS(move);
     piece_t moving = board->squares[from];
+    zobrist_t* z = &board->zobrist;
 
     if (piece_type(moving) == NO_PIECE || piece_color(moving) != board->turn) return;
 
     board->history[board->history_top++] = (board_history_t){
         .castling = board->castling,
         .ep_square_idx = board->ep_square_idx,
-        .halfmove = board->halfmove
+        .halfmove = board->halfmove,
+        .hash = board->hash,
     };
+
+    board->hash ^= z->pieces[moving][from];
+    board->hash ^= z->castling[board->castling];
+    if (board->ep_square_idx != -1)
+        board->hash ^= z->en_passant[board->ep_square_idx % 8];
+
+    if (flag == FLAG_CAPTURE)
+        board->hash ^= z->pieces[board->squares[to]][to];
 
     if (piece_type(moving) == PAWN || flag == FLAG_CAPTURE || flag == FLAG_EP)
         board->halfmove = 0;
@@ -531,6 +544,7 @@ void board_make_move(board_t* board, move_t move)
         {
             int cap_sq = to + (board->turn == WHITE ? -8 : 8);
             board->squares[cap_sq] = NO_PIECE;
+            board->hash ^= z->pieces[board->turn == WHITE ? (BLACK|PAWN) : (WHITE|PAWN)][cap_sq];
             break;
         }
         case FLAG_CASTLE_K:
@@ -539,6 +553,8 @@ void board_make_move(board_t* board, move_t move)
             int rt = (board->turn == WHITE ? square_to_idx(F1) : square_to_idx(F8));
             board->squares[rt] = board->squares[rf];
             board->squares[rf] = NO_PIECE;
+            board->hash ^= z->pieces[board->turn | ROOK][rf];
+            board->hash ^= z->pieces[board->turn | ROOK][rt];
             break;
         }
         case FLAG_CASTLE_Q:
@@ -547,6 +563,8 @@ void board_make_move(board_t* board, move_t move)
             int rt = (board->turn == WHITE ? square_to_idx(D1) : square_to_idx(D8));
             board->squares[rt] = board->squares[rf];
             board->squares[rf] = NO_PIECE;
+            board->hash ^= z->pieces[board->turn | ROOK][rf];
+            board->hash ^= z->pieces[board->turn | ROOK][rt];
             break;
         }
         case FLAG_PROMO_N: board->squares[to] = board->turn | KNIGHT; break;
@@ -562,15 +580,25 @@ void board_make_move(board_t* board, move_t move)
         }
     }
 
-    if (piece_type(moving) == KING)
-        board->castling &= board->turn == WHITE ? ~0b1100 : ~0b0011;
+    board->hash ^= z->pieces[board->squares[to]][to];
 
-    if (from == square_to_idx(H1) || to == square_to_idx(H1)) board->castling &= ~W_KSIDE;
+    if (piece_type(moving) == KING)
+    {
+        if (board->turn == WHITE) board->castling &= ~(W_KSIDE | W_QSIDE);
+        else                      board->castling &= ~(B_KSIDE | B_QSIDE);
+    }
     if (from == square_to_idx(A1) || to == square_to_idx(A1)) board->castling &= ~W_QSIDE;
-    if (from == square_to_idx(H8) || to == square_to_idx(H8)) board->castling &= ~B_KSIDE;
+    if (from == square_to_idx(H1) || to == square_to_idx(H1)) board->castling &= ~W_KSIDE;
     if (from == square_to_idx(A8) || to == square_to_idx(A8)) board->castling &= ~B_QSIDE;
+    if (from == square_to_idx(H8) || to == square_to_idx(H8)) board->castling &= ~B_KSIDE;
+
+    board->hash ^= z->castling[board->castling];
+
+    if (board->ep_square_idx != -1)
+        board->hash ^= z->en_passant[board->ep_square_idx % 8];
 
     board->turn = board->turn == WHITE ? BLACK : WHITE;
+    board->hash ^= z->turn;
 }
 
 void board_unmake_move(board_t* board, move_t move)
@@ -587,6 +615,7 @@ void board_unmake_move(board_t* board, move_t move)
     board->castling = s.castling;
     board->ep_square_idx = s.ep_square_idx;
     board->halfmove = s.halfmove;
+    board->hash = s.hash;
 
     if (board->turn == BLACK)
         board->fullmove--;
@@ -628,6 +657,7 @@ void board_unmake_move(board_t* board, move_t move)
         default:
             break;
     }
+    // board->hash = board->history[board->history_top].hash;
 }
 
 bool is_square_attacked(board_t* board, square_t sq, color_t color)

@@ -493,7 +493,7 @@ void test_pawn_moves()
     printf("pawn moves are ok ✅\n");
 }
 
-void test_gen_pseudo_legal_moves()
+void test_gen_moves()
 {
     board_t board = {0};
     board_init(&board);
@@ -605,7 +605,7 @@ int main()
     test_diag_moves();
     test_orth_moves();
     test_pawn_moves();
-    test_gen_pseudo_legal_moves();
+    test_gen_moves();
     test_make_move();
     test_unmake_move();
 

@@ -16,6 +16,7 @@ typedef struct board_history {
     int castling;
     int ep_square_idx;
     int halfmove;
+    uint64_t hash;
 } board_history_t;
 
 typedef struct board {
