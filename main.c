@@ -122,7 +122,8 @@ int search_captures(board_t* board, int alpha, int beta)
 bool is_repetition(board_t* board)
 {
     int limit = board->history_top - board->halfmove;
-    for (int i = board->history_top; i >= limit; i -= 2)
+    if (limit < 0) limit = 0;
+    for (int i = board->history_top - 2; i >= limit; i -= 2)
     {
         if (board->history[i].hash == board->hash)
             return true;
@@ -275,8 +276,19 @@ void uci_loop()
         }
         else if (strncmp(line, "go", 2) == 0)
         {
-            move_t best = search(&board, 6);
+            const char* p = line + 3; // skip "go "
+            int depth = 6;
+            if (strncmp(p, "depth", 5) == 0)
+            {
+                p += 6; // skip "depth "
+                depth = atoi(p);
+            }
+            move_t best = search(&board, (int)fmax(depth, 6));
             printf("bestmove %s\n", move_to_uci(best));
+        }
+        else if (strncmp(line, "d", 1) == 0)
+        {
+            board_print(&board);
         }
         else if (strncmp(line, "quit", 4) == 0)
         {
@@ -288,7 +300,11 @@ void uci_loop()
 
 int main()
 {
-#ifdef NO_UCI
+// technically these macros cancel each other,
+// but i'll keep them to distinguish when
+// i'm debugging the UCI part and when the engine
+// is working and using the UCI through an UI.
+#if defined(NO_UCI) && !defined(UCI_DEBUG)
     board_t board = {0};
     // board_from_fen(&board, "r3k2r/p1ppqpb1/Bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPB1PPP/R3K2R b KQkq - 0 1");
     board_from_fen(&board, "8/3Q4/8/4PK1k/8/8/8/8 w - - 1 75");

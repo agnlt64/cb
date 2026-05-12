@@ -19,6 +19,11 @@ tests: tests.c $(DEPS) $(MT_OBJ)
 chess: main.c $(DEPS) $(MT_OBJ)
 	$(CC) -DNO_UCI main.c $(DEPS) $(MT_OBJ) -o bin/main
 
+chess_debug: main.c $(DEPS) $(MT_OBJ)
+	@echo "Using UCI_DEBUG"
+	$(CC) -DNO_UCI -DUCI_DEBUG main.c $(DEPS) $(MT_OBJ) -o bin/main
+	./bin/main
+
 install:
 	$(CC) -O3 main.c $(DEPS) $(MT_OBJ) -o bin/main
 	cp bin/main ~/dev/en_croissant_engines
