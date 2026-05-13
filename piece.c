@@ -45,7 +45,7 @@ int piece_square_value(piece_t piece, int sq, int material)
         case BISHOP: return bishop_table[idx];
         case ROOK: return rook_table[idx];
         case QUEEN: return queen_table[idx];
-        case KING: return material <= 2600 ? king_endgame_table[idx] : king_midgame_table[idx];
+        case KING: return material <= 3000 ? king_endgame_table[idx] : king_midgame_table[idx];
         default: return 0;
     }
 }

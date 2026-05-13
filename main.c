@@ -1,11 +1,13 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
+#include <ctype.h>
 
 #include "board.h"
 #include "tt.h"
 
 int total_positions = 0;
+tt_entry_t tt[TT_SIZE];
 
 int count_material(board_t* board, color_t color)
 {
@@ -147,7 +149,7 @@ int negamax(board_t* board, int depth, int alpha, int beta)
     // 50-move rule and threefold repetition (one fold here)
     if (board->halfmove >= 100 || is_repetition(board)) return 0;
     
-    tt_entry_t* entry = tt_get(board->hash);
+    tt_entry_t* entry = tt_get(tt, board->hash);
     if (entry && entry->depth >= depth)
         return entry->eval;
 
@@ -167,7 +169,7 @@ int negamax(board_t* board, int depth, int alpha, int beta)
         if (eval > alpha) alpha = eval;
     }
 
-    tt_set(board->hash, depth, alpha);
+    tt_set(tt, board->hash, depth, alpha);
     return alpha;
 }
 
@@ -249,6 +251,17 @@ void parse_position(board_t* board, const char* line)
     }
 }
 
+int parse_time(const char* line, const char* side)
+{
+    const char* p = strstr(line, side);
+    if (!p) return 0;
+    p += strlen(side) + 1;
+    int time_left = 0;
+    while (isdigit(*p))
+        time_left = 10 * time_left + (*p++ - '0');
+    return time_left;
+}
+
 void uci_loop()
 {
     board_t board = {0};
@@ -276,14 +289,12 @@ void uci_loop()
         }
         else if (strncmp(line, "go", 2) == 0)
         {
-            const char* p = line + 3; // skip "go "
-            int depth = 6;
-            if (strncmp(p, "depth", 5) == 0)
-            {
-                p += 6; // skip "depth "
-                depth = atoi(p);
-            }
-            move_t best = search(&board, (int)fmax(depth, 6));
+            // int btime = parse_time(line, "btime");
+            // int wtime = parse_time(line, "wtime");
+            // int binc = parse_time(line, "binc");
+            // int winc = parse_time(line, "winc");
+            // printf("black = %d + %d, white = %d + %d\n", btime, binc, wtime, winc);
+            move_t best = search(&board, 6);
             printf("bestmove %s\n", move_to_uci(best));
         }
         else if (strncmp(line, "d", 1) == 0)

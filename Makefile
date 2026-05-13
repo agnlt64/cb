@@ -21,7 +21,7 @@ chess: main.c $(DEPS) $(MT_OBJ)
 
 chess_debug: main.c $(DEPS) $(MT_OBJ)
 	@echo "Using UCI_DEBUG"
-	$(CC) -DNO_UCI -DUCI_DEBUG main.c $(DEPS) $(MT_OBJ) -o bin/main
+	$(CC) -DNO_UCI -DUCI_DEBUG main.c $(DEPS) $(MT_OBJ) -lm -o bin/main
 	./bin/main
 
 install:
