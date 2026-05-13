@@ -1,4 +1,5 @@
 CC=gcc
+LDFLAGS=-lm
 DEPS=board.c piece.c square.c move.c zobrist.c tt.c
 MT_OBJ=bin/mt19937-64.o
 
@@ -17,15 +18,15 @@ tests: tests.c $(DEPS) $(MT_OBJ)
 	./bin/tests
 
 chess: main.c $(DEPS) $(MT_OBJ)
-	$(CC) -DNO_UCI main.c $(DEPS) $(MT_OBJ) -o bin/main
+	$(CC) $(LDFLAGS) -DNO_UCI main.c $(DEPS) $(MT_OBJ) -o bin/main
 
 chess_debug: main.c $(DEPS) $(MT_OBJ)
 	@echo "Using UCI_DEBUG"
-	$(CC) -DNO_UCI -DUCI_DEBUG main.c $(DEPS) $(MT_OBJ) -lm -o bin/main
+	$(CC) $(LDFLAGS) -DNO_UCI -DUCI_DEBUG main.c $(DEPS) $(MT_OBJ) -o bin/main
 	./bin/main
 
 install:
-	$(CC) -O3 main.c $(DEPS) $(MT_OBJ) -o bin/main
+	$(CC) $(LDFLAGS) -O3 main.c $(DEPS) $(MT_OBJ) -o bin/main
 	cp bin/main ~/dev/en_croissant_engines
 
 clean:

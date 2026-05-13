@@ -2,6 +2,7 @@
 #include <math.h>
 #include <string.h>
 #include <ctype.h>
+#include <time.h>
 
 #include "board.h"
 #include "tt.h"
@@ -133,13 +134,26 @@ bool is_repetition(board_t* board)
     return false;
 }
 
+// ugly global state, just to debug
+bool canceled = false;
+static clock_t search_end;
+
+static void check_time()
+{
+    if (clock() >= search_end)
+        canceled = true;
+}
+
 int negamax(board_t* board, int depth, int alpha, int beta)
 {
     total_positions++;
 
+    if (canceled) return 0;
+    if ((total_positions & 2048) == 0) check_time();
+
     // important: always keep this at the top of the function
     move_t moves[256];
-    int n = gen_legal_moves(board, moves);
+    int n = gen_legal_moves(board, moves, 0);
     if (n == 0)
     {
         int king_sq = find_king(board, board->turn);
@@ -173,10 +187,15 @@ int negamax(board_t* board, int depth, int alpha, int beta)
     return alpha;
 }
 
-move_t search(board_t* board, int depth)
+move_t search(board_t* board, int depth, move_t pre_best_move)
 {
+#ifdef UCI_DEBUG
+    printf("depth = %d\n", depth);
+    printf("pre best move = %s\n", move_to_uci(pre_best_move));
+#endif
+
     move_t moves[256];
-    int n = gen_legal_moves(board, moves);
+    int n = gen_legal_moves(board, moves, pre_best_move);
 
     move_t best = moves[0];
     int best_eval = -200000;
@@ -197,6 +216,18 @@ move_t search(board_t* board, int depth)
     return best;
 }
 
+move_t iterative_deepening(board_t* board)
+{
+    move_t best = 0;
+    for (int depth = 1; depth < 256; depth++)
+    {
+        move_t best_move_curr = search(board, depth, best);
+        if (canceled) break;
+        best = best_move_curr;
+    }
+    return best;
+}
+
 static move_t parse_uci_move(board_t* board, const char* s)
 {
     int from = (s[1] - '1') * 8 + (s[0] - 'a');
@@ -204,7 +235,7 @@ static move_t parse_uci_move(board_t* board, const char* s)
     char promo = (s[4] && s[4] != ' ' && s[4] != '\n' && s[4] != '\r') ? s[4] : 0;
 
     move_t moves[256];
-    int n = gen_legal_moves(board, moves);
+    int n = gen_legal_moves(board, moves, 0);
     for (int i = 0; i < n; i++)
     {
         if (MOVE_FROM(moves[i]) != from || MOVE_TO(moves[i]) != to) continue;
@@ -289,12 +320,23 @@ void uci_loop()
         }
         else if (strncmp(line, "go", 2) == 0)
         {
-            // int btime = parse_time(line, "btime");
-            // int wtime = parse_time(line, "wtime");
-            // int binc = parse_time(line, "binc");
-            // int winc = parse_time(line, "winc");
-            // printf("black = %d + %d, white = %d + %d\n", btime, binc, wtime, winc);
-            move_t best = search(&board, 6);
+            int btime = parse_time(line, "btime");
+            int wtime = parse_time(line, "wtime");
+            int binc = parse_time(line, "binc");
+            int winc = parse_time(line, "winc");
+
+            int time_left = board.turn == WHITE ? wtime : btime;
+            int inc = board.turn == WHITE ? winc : binc;
+            int alloc_time = time_left / 30 + inc / 2;
+            if (alloc_time == 0) alloc_time = 30000; // 30s by default
+
+            canceled = false;
+            search_end = clock() + (clock_t)(alloc_time * CLOCKS_PER_SEC / 1000);
+#ifdef UCI_DEBUG
+            printf("using %dms\n", alloc_time);
+            printf("black = %d + %d, white = %d + %d\n", btime, binc, wtime, winc);
+#endif
+            move_t best = iterative_deepening(&board);
             printf("bestmove %s\n", move_to_uci(best));
         }
         else if (strncmp(line, "d", 1) == 0)

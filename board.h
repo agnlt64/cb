@@ -39,7 +39,7 @@ void board_from_fen(board_t* board, const char* fen);
 
 int find_king(board_t* board, color_t turn);
 int gen_capture_moves(board_t* board, move_t* moves);
-int gen_legal_moves(board_t* board, move_t* moves);
+int gen_legal_moves(board_t* board, move_t* moves, move_t to_explore);
 int gen_pseudo_legal_moves(board_t* board, move_t* moves);
 int gen_king_moves(board_t* board, int sq, move_t* moves);
 int gen_knight_moves(board_t* board, int sq, move_t* moves);

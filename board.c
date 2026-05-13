@@ -464,12 +464,16 @@ int find_king(board_t* board, color_t turn)
     return king_sq;
 }
 
-int gen_legal_moves(board_t* board, move_t* moves)
+// to_explore will be in first position in the moves array
+int gen_legal_moves(board_t* board, move_t* moves, move_t to_explore)
 {
     move_t pseudo[512];
     int n = gen_pseudo_legal_moves(board, pseudo);
     int count = 0;
     color_t turn = board->turn;
+
+    if (to_explore != 0)
+        pseudo[count++] = to_explore;
 
     for (size_t i = 0; i < n; i++)
     {
@@ -488,7 +492,7 @@ int gen_legal_moves(board_t* board, move_t* moves)
 int gen_capture_moves(board_t* board, move_t* moves)
 {
     move_t m[512];
-    int n = gen_legal_moves(board, m);
+    int n = gen_legal_moves(board, m, 0);
     int count = 0;
 
     for (size_t i = 0; i < n; i++)
