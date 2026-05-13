@@ -28,7 +28,7 @@ static int move_gen_test(board_t* board, int depth)
         return 1;
 
     move_t moves[512];
-    int n = gen_legal_moves(board, moves);
+    int n = gen_legal_moves(board, moves, 0);
 
     int num_pos = 0;
     for (size_t i = 0; i < n; i++)
