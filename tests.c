@@ -587,6 +587,18 @@ void test_unmake_move()
     printf("unmake move is ok ✅\n");
 }
 
+void test_in_ckeck()
+{
+    board_t board = {0};
+    board_from_fen(&board, "8/b4k2/5n2/1p4p1/1P1r2b1/3K4/PP1P4/1RB5 w - - 0 36");
+    assert(board_in_check(&board));
+
+    board_init(&board);
+    assert(!board_in_check(&board));
+
+    printf("in check is ok ✅\n");
+}
+
 int main()
 {
     test_initial_state();
@@ -608,6 +620,7 @@ int main()
     test_gen_moves();
     test_make_move();
     test_unmake_move();
+    test_in_ckeck();
 
     return 0;
 }

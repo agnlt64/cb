@@ -25,6 +25,7 @@ int count_material(board_t* board, color_t color)
     return total;
 }
 
+// todo: improve move ordering, check / captures first maybe?
 void order_moves(board_t* board, move_t* moves, int n)
 {
     color_t opp = board->turn == WHITE ? BLACK : WHITE;
@@ -187,6 +188,18 @@ int negamax(board_t* board, int depth, int alpha, int beta)
     return alpha;
 }
 
+int get_extension(board_t* board, move_t move)
+{
+    int extension = 0;
+    int to = MOVE_TO(move);
+    piece_t p = board->squares[to];
+
+    if (board_in_check(board))
+        extension = 1;
+
+    return extension;
+}
+
 move_t search(board_t* board, int depth, move_t pre_best_move)
 {
 #ifdef UCI_DEBUG
@@ -202,14 +215,16 @@ move_t search(board_t* board, int depth, move_t pre_best_move)
 
     for (size_t i = 0; i < n; i++)
     {
-        board_make_move(board, moves[i]);
-        int eval = -negamax(board, depth - 1, -200000, 200000);
-        board_unmake_move(board, moves[i]);
+        move_t move = moves[i];
+        board_make_move(board, move);
+        int extension = get_extension(board, move);
+        int eval = -negamax(board, depth - 1 + extension, -200000, 200000);
+        board_unmake_move(board, move);
 
         if (eval > best_eval)
         {
             best_eval = eval;
-            best = moves[i];
+            best = move;
         }
     }
 
@@ -363,7 +378,7 @@ int main()
     board_from_fen(&board, "8/3Q4/8/4PK1k/8/8/8/8 w - - 1 75");
 
     printf("board hash = %llu\n", board.hash);
-    printf("best move = %s\n", move_to_uci(search(&board, 4)));
+    printf("best move = %s\n", move_to_uci(search(&board)));
     printf("total positions = %d\n", total_positions);
 #else
     uci_loop();

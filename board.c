@@ -450,6 +450,12 @@ int gen_pseudo_legal_moves(board_t* board, move_t* moves)
     return count;
 }
 
+bool board_in_check(board_t* board)
+{
+    int king_sq = find_king(board, board->turn);
+    return is_square_attacked(board, idx_to_square(king_sq), board->turn == WHITE ? BLACK : WHITE);
+}
+
 int find_king(board_t* board, color_t turn)
 {
     int king_sq = -1;
