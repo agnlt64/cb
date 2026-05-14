@@ -1,33 +1,38 @@
 CC=gcc
 LDFLAGS=-lm
-DEPS=board.c piece.c square.c move.c zobrist.c tt.c
+DEPS_C=board.c piece.c square.c move.c zobrist.c tt.c
+DEPS_H=board.h piece.h square.h move.h zobrist.h tt.h
+DEPS=$(DEPS_C) $(DEPS_H)
 MT_OBJ=bin/mt19937-64.o
+UCI=./bin/uci
+UCI_DEBUG=$(UCI)_debug
+UCI_RELEASE=$(UCI)_o3_release
 
-.PHONY: all clean
+.PHONY: all run clean
 
-all: run chess tests
+all: uci uci_debug tests
 
 $(MT_OBJ): mt19937-64.c mt19937-64.h
 	$(CC) -c mt19937-64.c -o $(MT_OBJ)
-
-run: chess
-	./bin/main
 
 tests: tests.c $(DEPS) $(MT_OBJ)
 	$(CC) tests.c $(DEPS) $(MT_OBJ) -o ./bin/tests
 	./bin/tests
 
-chess: main.c $(DEPS) $(MT_OBJ)
-	$(CC) $(LDFLAGS) -DNO_UCI main.c $(DEPS) $(MT_OBJ) -o bin/main
+run: uci
+	$(UCI)
 
-chess_debug: main.c $(DEPS) $(MT_OBJ)
-	@echo "Using UCI_DEBUG"
-	$(CC) $(LDFLAGS) -DNO_UCI -DUCI_DEBUG main.c $(DEPS) $(MT_OBJ) -o bin/main
-	./bin/main
+uci: main.c $(DEPS) $(MT_OBJ)
+	$(CC) $(LDFLAGS) main.c $(DEPS) $(MT_OBJ) -o $(UCI)
 
-install:
-	$(CC) $(LDFLAGS) -O3 main.c $(DEPS) $(MT_OBJ) -o bin/main
-	cp bin/main ~/dev/en_croissant_engines
+uci_debug: main.c $(DEPS) $(MT_OBJ)
+	$(CC) $(LDFLAGS) -DUCI_DEBUG main.c $(DEPS) $(MT_OBJ) -o $(UCI_DEBUG)
+
+release:
+	$(CC) $(LDFLAGS) -O3 main.c $(DEPS) $(MT_OBJ) -o $(UCI_RELEASE)
+
+install: release
+	cp $(UCI_RELEASE) ~/dev/en_croissant_engines/main
 
 clean:
 	rm bin/*
