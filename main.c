@@ -141,7 +141,7 @@ static clock_t search_end;
 
 static void check_time()
 {
-    if (clock() >= search_end)
+    if (search_end != 0 && clock() >= search_end)
         canceled = true;
 }
 
@@ -150,7 +150,7 @@ int negamax(board_t* board, int depth, int alpha, int beta)
     total_positions++;
 
     if (canceled) return 0;
-    if ((total_positions & 2048) == 0) check_time();
+    if ((total_positions & 2047) == 0) check_time();
 
     // important: always keep this at the top of the function
     move_t moves[256];
@@ -172,6 +172,21 @@ int negamax(board_t* board, int depth, int alpha, int beta)
         return search_captures(board, alpha, beta);
 
     order_moves(board, moves, n);
+
+    // null move pruning
+    if (depth >= 3 && !board_in_check(board))
+    {
+        board->turn = board->turn == WHITE ? BLACK : WHITE;
+        board->hash ^= board->zobrist.turn;
+        // shallower search, buf if it's good it will be pruned
+        // anyway, so do it
+        int eval = -negamax(board, depth - 3, -beta, -beta + 1);
+        board->turn = board->turn == WHITE ? BLACK : WHITE;
+        board->hash ^= board->zobrist.turn;
+
+        if (eval >= beta)
+            return beta;
+    }
 
     for (size_t i = 0; i < n; i++)
     {
@@ -368,21 +383,7 @@ void uci_loop()
 
 int main()
 {
-// technically these macros cancel each other,
-// but i'll keep them to distinguish when
-// i'm debugging the UCI part and when the engine
-// is working and using the UCI through an UI.
-#if defined(NO_UCI) && !defined(UCI_DEBUG)
-    board_t board = {0};
-    // board_from_fen(&board, "r3k2r/p1ppqpb1/Bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPB1PPP/R3K2R b KQkq - 0 1");
-    board_from_fen(&board, "8/3Q4/8/4PK1k/8/8/8/8 w - - 1 75");
-
-    printf("board hash = %llu\n", board.hash);
-    printf("best move = %s\n", move_to_uci(search(&board)));
-    printf("total positions = %d\n", total_positions);
-#else
     uci_loop();
-#endif
 
     return 0;
 }
