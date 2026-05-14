@@ -479,10 +479,11 @@ int gen_legal_moves(board_t* board, move_t* moves, move_t to_explore)
     color_t turn = board->turn;
 
     if (to_explore != 0)
-        pseudo[count++] = to_explore;
+        moves[count++] = to_explore;
 
     for (size_t i = 0; i < n; i++)
     {
+        if (pseudo[i] == to_explore) continue;
         board_make_move(board, pseudo[i]);
         int king_sq = find_king(board, turn);
 

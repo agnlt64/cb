@@ -7,12 +7,10 @@ void move_print(move_t move)
 {
     char* str = move_to_uci(move);
     printf("%s\n", str);
-    free(str);
 }
 
 char* move_to_uci(move_t move)
 {
-    // todo: support promotion
     static char res[6];
     int idx_from = MOVE_FROM(move);
     int idx_to = MOVE_TO(move);
