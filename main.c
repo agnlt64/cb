@@ -7,8 +7,17 @@
 #include "board.h"
 #include "tt.h"
 
+#define MAX_DEPTH 20
+
 int total_positions = 0;
 tt_entry_t tt[TT_SIZE];
+
+typedef struct killer {
+    move_t a;
+    move_t b;
+} killer_t;
+
+killer_t killers[MAX_DEPTH] = {0};
 
 int count_material(board_t* board, color_t color)
 {
@@ -25,8 +34,21 @@ int count_material(board_t* board, color_t color)
     return total;
 }
 
-// todo: improve move ordering, check / captures first maybe?
-void order_moves(board_t* board, move_t* moves, int n)
+void add_killer(int depth, move_t move)
+{
+    if (move != killers[depth].a)
+    {
+        killers[depth].b = killers[depth].a;
+        killers[depth].a = move;
+    }
+}
+
+bool killer_contains(int depth, move_t move)
+{
+    return move == killers[depth].a || move == killers[depth].b;
+}
+
+void order_moves(board_t* board, move_t* moves, int n, int depth)
 {
     color_t opp = board->turn == WHITE ? BLACK : WHITE;
     int scores[256];
@@ -39,7 +61,14 @@ void order_moves(board_t* board, move_t* moves, int n)
         piece_type_t capture_piece_type = MOVE_CAPTURED(move);
 
         if (capture_piece_type != NO_PIECE)
-            score_guess = 10 * piece_value(capture_piece_type) - piece_value(move_piece_type);
+        {
+            score_guess = 10 * piece_value(capture_piece_type) - piece_value(move_piece_type);            
+        }
+        else
+        {
+            // detect killer move
+            score_guess += (depth >= 0 && depth < MAX_DEPTH && killer_contains(depth, move)) ? 4000000 : 0;
+        }
 
         switch (MOVE_FLAGS(move))
         {
@@ -105,7 +134,7 @@ int search_captures(board_t* board, int alpha, int beta)
     
     move_t capture_moves[256];
     int n = gen_capture_moves(board, capture_moves);
-    order_moves(board, capture_moves, n);
+    order_moves(board, capture_moves, n, -1);
 
     for (size_t i = 0; i < n; i++)
     {
@@ -145,6 +174,18 @@ static void check_time()
         canceled = true;
 }
 
+int get_extension(board_t* board, move_t move)
+{
+    int extension = 0;
+    int to = MOVE_TO(move);
+    piece_t p = board->squares[to];
+
+    if (board_in_check(board))
+        extension = 1;
+
+    return extension;
+}
+
 int negamax(board_t* board, int depth, int alpha, int beta)
 {
     total_positions++;
@@ -171,7 +212,7 @@ int negamax(board_t* board, int depth, int alpha, int beta)
     if (depth == 0)
         return search_captures(board, alpha, beta);
 
-    order_moves(board, moves, n);
+    order_moves(board, moves, n, depth);
 
     // null move pruning
     if (depth >= 3 && !board_in_check(board))
@@ -192,27 +233,37 @@ int negamax(board_t* board, int depth, int alpha, int beta)
     {
         move_t move = moves[i];
         board_make_move(board, move);
-        int eval = -negamax(board, depth - 1, -beta, -alpha);
+        int extension = get_extension(board, move);
+
+        // late move reduction
+        int eval;
+        bool is_late = depth >= 3 && i >= 3 && extension == 0 &&
+                       MOVE_FLAGS(move) != FLAG_CAPTURE && MOVE_FLAGS(move) != FLAG_EP;
+
+        if (is_late)
+        {
+            eval = -negamax(board, depth - 2, -alpha - 1, -alpha);
+            if (eval > alpha)
+                eval = -negamax(board, depth - 1, -beta, -alpha);
+        }
+        else
+        {
+            eval = -negamax(board, depth - 1 + extension, -beta, -alpha);
+        }
         board_unmake_move(board, move);
 
-        if (eval >= beta) return beta;
+        // killer move detection
+        if (eval >= beta)
+        {
+            if (depth < MAX_DEPTH && MOVE_FLAGS(move) != FLAG_CAPTURE && MOVE_FLAGS(move) != FLAG_EP)
+                add_killer(depth, move);
+            return beta;
+        }
         if (eval > alpha) alpha = eval;
     }
 
     tt_set(tt, board->hash, depth, alpha);
     return alpha;
-}
-
-int get_extension(board_t* board, move_t move)
-{
-    int extension = 0;
-    int to = MOVE_TO(move);
-    piece_t p = board->squares[to];
-
-    if (board_in_check(board))
-        extension = 1;
-
-    return extension;
 }
 
 move_t search(board_t* board, int depth, move_t pre_best_move)
@@ -232,8 +283,7 @@ move_t search(board_t* board, int depth, move_t pre_best_move)
     {
         move_t move = moves[i];
         board_make_move(board, move);
-        int extension = get_extension(board, move);
-        int eval = -negamax(board, depth - 1 + extension, -200000, 200000);
+        int eval = -negamax(board, depth - 1, -200000, 200000);
         board_unmake_move(board, move);
 
         if (eval > best_eval)
