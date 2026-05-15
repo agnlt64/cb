@@ -504,11 +504,20 @@ int gen_capture_moves(board_t* board, move_t* moves)
 
     for (size_t i = 0; i < n; i++)
     {
-        int flag = MOVE_FLAGS(m[i]);
-        if (flag == FLAG_CAPTURE || flag == FLAG_EP ||
-            flag == FLAG_PROMO_N || flag == FLAG_PROMO_B ||
-            flag == FLAG_PROMO_R || flag == FLAG_PROMO_Q)
-            moves[count++] = m[i];
+        move_t move = m[i];
+        int flag = MOVE_FLAGS(move);
+        if (flag == FLAG_CAPTURE || flag == FLAG_EP)
+        {
+            moves[count++] = move;
+        }
+        else if (flag == FLAG_PROMO_Q)
+        {
+            moves[count++] = move;
+        }
+        else if (MOVE_CAPTURED(move) != NO_PIECE && (flag == FLAG_PROMO_N || flag == FLAG_PROMO_B || flag == FLAG_PROMO_R))
+        {
+            moves[count++] = move;
+        }
     }
     return count;
 }

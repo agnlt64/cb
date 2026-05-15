@@ -555,6 +555,22 @@ void test_gen_moves()
     printf("gen moves is ok ✅\n");
 }
 
+void test_gen_capture_moves()
+{
+    board_t board = {0};
+    board_from_fen(&board, "r1b1kb1r/ppp2ppp/4p3/4P3/1nPq4/5N2/PPQ1KpPP/R1B2B1R w kq - 0 1");
+
+    move_t moves[64];
+    int n = gen_capture_moves(&board, moves);
+    assert(n == 2 && "2 captures for white in this position");
+
+    board_from_fen(&board, "4b2K/pp2p1pp/2ppkp2/1B5Q/1P1PN2P/2P1P1P1/R7/8 w - - 0 1");
+    n = gen_capture_moves(&board, moves);
+    assert(n == 8 && "8 captures for white in this position");
+
+    printf("gen capture moves is ok ✅\n");
+}
+
 // todo: finish testing
 void test_make_move()
 {
@@ -618,6 +634,7 @@ int main()
     test_orth_moves();
     test_pawn_moves();
     test_gen_moves();
+    test_gen_capture_moves();
     test_make_move();
     test_unmake_move();
     test_in_ckeck();
