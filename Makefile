@@ -13,7 +13,7 @@ UCI_RELEASE=$(UCI)_o3_release
 
 .PHONY: all run clean
 
-all: uci_debug tests
+all: debug tests
 
 $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)
