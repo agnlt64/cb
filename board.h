@@ -26,7 +26,7 @@ typedef struct board {
     int ep_square_idx;
     int halfmove;
     int fullmove;
-    board_history_t history[512];
+    board_history_t history[2048];
     int history_top;
     zobrist_t zobrist;
     uint64_t hash;

@@ -11,6 +11,10 @@
 
 int total_positions = 0;
 tt_entry_t tt[TT_SIZE];
+// volatile to make sure they don't get
+// optimized out by -O3
+volatile bool canceled = false;
+static volatile clock_t search_end;
 
 typedef struct killer {
     move_t a;
@@ -164,10 +168,6 @@ bool is_repetition(board_t* board)
     return false;
 }
 
-// ugly global state, just to debug
-bool canceled = false;
-static clock_t search_end;
-
 static void check_time()
 {
     if (search_end != 0 && clock() >= search_end)
@@ -266,7 +266,7 @@ int negamax(board_t* board, int depth, int alpha, int beta)
     return alpha;
 }
 
-move_t search(board_t* board, int depth, move_t pre_best_move)
+move_t search(board_t* board, int depth, move_t pre_best_move, int* out_eval)
 {
 #ifdef UCI_DEBUG
     printf("depth = %d\n", depth);
@@ -293,6 +293,7 @@ move_t search(board_t* board, int depth, move_t pre_best_move)
         }
     }
 
+    *out_eval = best_eval;
     return best;
 }
 
@@ -301,9 +302,12 @@ move_t iterative_deepening(board_t* board)
     move_t best = 0;
     for (int depth = 1; depth < 256; depth++)
     {
-        move_t best_move_curr = search(board, depth, best);
+        int eval;
+        move_t best_move_curr = search(board, depth, best, &eval);
         if (canceled) break;
         best = best_move_curr;
+        // checkmate found, don't keep searching
+        if (depth >= 2 && (eval >= 99000 || eval <= -99000)) break;
     }
     return best;
 }
@@ -383,6 +387,8 @@ void uci_loop()
         if (strncmp(line, "ucinewgame", 10) == 0)
         {
             board_init(&board);
+            memset(tt, 0, sizeof(tt));
+            memset(killers, 0, sizeof(killers));
         }
         else if (strncmp(line, "isready", 7) == 0)
         {
