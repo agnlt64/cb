@@ -142,6 +142,7 @@ int search_captures(board_t* board, int alpha, int beta)
 
     for (size_t i = 0; i < n; i++)
     {
+        if (canceled) return alpha;
         move_t move = capture_moves[i];
         board_make_move(board, move);
         eval = -search_captures(board, -beta, -alpha);
@@ -231,6 +232,7 @@ int negamax(board_t* board, int depth, int alpha, int beta)
 
     for (size_t i = 0; i < n; i++)
     {
+        if (canceled) return alpha;
         move_t move = moves[i];
         board_make_move(board, move);
         int extension = get_extension(board, move);
