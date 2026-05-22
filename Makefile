@@ -1,7 +1,7 @@
 CC=gcc
 LDFLAGS=-lm
-SRC=board.c piece.c square.c move.c zobrist.c tt.c mt19937-64.c
-HEAD=board.h piece.h square.h move.h zobrist.h tt.h mt19937-64.h
+SRC=board.c piece.c square.c move.c zobrist.c tt.c mt19937-64.c evaluation.c pieces_tables.c precomputed_move_data.c
+HEAD=board.h piece.h square.h move.h zobrist.h tt.h mt19937-64.h evaluation.h pieces_tables.h precomputed_move_data.h
 
 OBJ_DIR=bin/obj
 OBJ=$(patsubst %.c, $(OBJ_DIR)/%.o, $(SRC))
@@ -32,6 +32,9 @@ release: main.c $(OBJ)
 
 install: release
 	cp $(UCI_RELEASE) ~/dev/en_croissant_engines/main
+
+install_debug: debug
+	cp $(UCI_DEBUG) ~/dev/en_croissant_engines/uci_debug
 
 clean:
 	-rm -rf $(OBJ_DIR)

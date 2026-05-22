@@ -28,25 +28,19 @@ int piece_value(piece_t piece)
     return PIECE_VALUES[piece_type(piece)];
 }
 
-// internal usage only
-int flip(int sq)
+int piece_square_value(piece_t piece, int sq)
 {
-    return (7 - sq / 8) * 8 + sq % 8;
-}
-
-int piece_square_value(piece_t piece, int sq, int material)
-{
-    int idx = piece_color(piece) == WHITE ? sq : flip(sq);
-    int endgame_material = piece_value(ROOK) * 2 + piece_value(KNIGHT) + piece_value(BISHOP);
+    int idx = piece_color(piece) == WHITE ? sq : flip_square_idx(sq);
+    // int endgame_material = piece_value(ROOK) * 2 + piece_value(KNIGHT) + piece_value(BISHOP);
 
     switch (piece_type(piece))
     {
-        case PAWN: return pawn_table[idx];
+        // case PAWN: return pawn_table[idx];
         case KNIGHT: return knight_table[idx];
         case BISHOP: return bishop_table[idx];
         case ROOK: return rook_table[idx];
         case QUEEN: return queen_table[idx];
-        case KING: return material <= endgame_material ? king_endgame_table[idx] : king_midgame_table[idx];
+        // case KING: return material <= endgame_material ? king_endgame_table[idx] : king_midgame_table[idx];
         default: return 0;
     }
 }

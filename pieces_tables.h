@@ -2,7 +2,7 @@
 
 // from https://www.chessprogramming.org/Simplified_Evaluation_Function
 
-static int pawn_table[64] = {
+static int pawn_early_table[64] = {
     0, 0, 0, 0, 0, 0, 0, 0,
     50, 50, 50, 50, 50, 50, 50, 50,
     10, 10, 20, 30, 30, 20, 10, 10,
@@ -11,6 +11,17 @@ static int pawn_table[64] = {
     5, -5, -10, 0, 0, -10, -5, 5,
     5, 10, 10, -20, -20, 10, 10, 5,
     0, 0, 0, 0, 0, 0, 0, 0
+};
+
+static int pawn_late_table[64] = {
+    0,   0,   0,   0,   0,   0,   0,   0,
+    80,  80,  80,  80,  80,  80,  80,  80,
+    50,  50,  50,  50,  50,  50,  50,  50,
+    30,  30,  30,  30,  30,  30,  30,  30,
+    20,  20,  20,  20,  20,  20,  20,  20,
+    10,  10,  10,  10,  10,  10,  10,  10,
+    10,  10,  10,  10,  10,  10,  10,  10,
+    0,   0,   0,   0,   0,   0,   0,   0
 };
 
 static int knight_table[64] = {
@@ -57,7 +68,7 @@ static int queen_table[64] = {
     -20,-10,-10, -5, -5,-10,-10,-20
 };
 
-static int king_midgame_table[64] = {
+static int king_start_table[64] = {
     -30,-40,-40,-50,-50,-40,-40,-30,
     -30,-40,-40,-50,-50,-40,-40,-30,
     -30,-40,-40,-50,-50,-40,-40,-30,
@@ -68,7 +79,7 @@ static int king_midgame_table[64] = {
     20, 30, 10,  0,  0, 10, 30, 20
 };
 
-static int king_endgame_table[64] = {
+static int king_end_table[64] = {
     -50,-40,-30,-20,-20,-30,-40,-50,
     -30,-20,-10,  0,  0,-10,-20,-30,
     -30,-10, 20, 30, 30, 20,-10,-30,
@@ -78,3 +89,5 @@ static int king_endgame_table[64] = {
     -30,-30,  0,  0,  0,  0,-30,-30,
     -50,-30,-30,-30,-30,-30,-30,-50
 };
+
+int flip_square_idx(int sq);

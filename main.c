@@ -6,8 +6,11 @@
 
 #include "board.h"
 #include "tt.h"
+#include "evaluation.h"
+#include "precomputed_move_data.h"
 
 #define MAX_DEPTH 20
+#define MATE_SCORE 100000
 
 int total_positions = 0;
 tt_entry_t tt[TT_SIZE];
@@ -16,27 +19,13 @@ tt_entry_t tt[TT_SIZE];
 volatile bool canceled = false;
 static volatile clock_t search_end;
 
-typedef struct killer {
+typedef struct killer
+{
     move_t a;
     move_t b;
 } killer_t;
 
 killer_t killers[MAX_DEPTH] = {0};
-
-int count_material(board_t* board, color_t color)
-{
-    int total = 0;
-
-    for (int i = 0; i < FILES * RANKS; i++)
-    {
-        piece_t p = board->squares[i];
-        if (piece_color(p) != color) continue;
-
-        total += piece_value(p);
-    }
-
-    return total;
-}
 
 void add_killer(int depth, move_t move)
 {
@@ -52,7 +41,7 @@ bool killer_contains(int depth, move_t move)
     return move == killers[depth].a || move == killers[depth].b;
 }
 
-void order_moves(board_t* board, move_t* moves, int n, int depth)
+void order_moves(board_t *board, move_t *moves, int n, int depth)
 {
     color_t opp = board->turn == WHITE ? BLACK : WHITE;
     int scores[256];
@@ -66,7 +55,7 @@ void order_moves(board_t* board, move_t* moves, int n, int depth)
 
         if (capture_piece_type != NO_PIECE)
         {
-            score_guess = 10 * piece_value(capture_piece_type) - piece_value(move_piece_type);            
+            score_guess = 10 * piece_value(capture_piece_type) - piece_value(move_piece_type);
         }
         else
         {
@@ -76,11 +65,20 @@ void order_moves(board_t* board, move_t* moves, int n, int depth)
 
         switch (MOVE_FLAGS(move))
         {
-            case FLAG_PROMO_B: score_guess += piece_value(BISHOP); break;
-            case FLAG_PROMO_N: score_guess += piece_value(KNIGHT); break;
-            case FLAG_PROMO_R: score_guess += piece_value(ROOK);   break;
-            case FLAG_PROMO_Q: score_guess += piece_value(QUEEN);  break;
-            default: break;
+        case FLAG_PROMO_B:
+            score_guess += piece_value(BISHOP);
+            break;
+        case FLAG_PROMO_N:
+            score_guess += piece_value(KNIGHT);
+            break;
+        case FLAG_PROMO_R:
+            score_guess += piece_value(ROOK);
+            break;
+        case FLAG_PROMO_Q:
+            score_guess += piece_value(QUEEN);
+            break;
+        default:
+            break;
         }
 
         if (can_pawn_attack(board, idx_to_square(MOVE_TO(move)), opp))
@@ -105,44 +103,26 @@ void order_moves(board_t* board, move_t* moves, int n, int depth)
     }
 }
 
-int evaluate(board_t* board)
-{
-    int eval = 0;
-
-    int material = count_material(board, board->turn);
-
-    for (int sq = 0; sq < 64; sq++)
-    {
-        piece_t p = board->squares[sq];
-        if (piece_type(p) == NO_PIECE)
-            continue;
-
-        int val = piece_value(p) + piece_square_value(p, sq, material);
-        eval += piece_color(p) == WHITE ? val : -val;
-    }
-
-    int sign = board->turn == WHITE ? 1 : -1;
-    return sign * eval;
-}
-
-int search_captures(board_t* board, int alpha, int beta)
+int search_captures(board_t *board, int alpha, int beta)
 {
     total_positions++;
     int eval = evaluate(board);
     if (eval >= beta)
         return beta;
-    
-    if (eval + piece_value(QUEEN) < alpha) return alpha;
+
+    if (eval + piece_value(QUEEN) < alpha)
+        return alpha;
 
     alpha = (int)fmax(alpha, eval);
-    
+
     move_t capture_moves[256];
     int n = gen_capture_moves(board, capture_moves);
     order_moves(board, capture_moves, n, -1);
 
     for (size_t i = 0; i < n; i++)
     {
-        if (canceled) return alpha;
+        if (canceled)
+            return alpha;
         move_t move = capture_moves[i];
         board_make_move(board, move);
         eval = -search_captures(board, -beta, -alpha);
@@ -157,10 +137,11 @@ int search_captures(board_t* board, int alpha, int beta)
     return alpha;
 }
 
-bool is_repetition(board_t* board)
+bool is_repetition(board_t *board)
 {
     int limit = board->history_top - board->halfmove;
-    if (limit < 0) limit = 0;
+    if (limit < 0)
+        limit = 0;
     for (int i = board->history_top - 2; i >= limit; i -= 2)
     {
         if (board->history[i].hash == board->hash)
@@ -175,7 +156,7 @@ static void check_time()
         canceled = true;
 }
 
-int get_extension(board_t* board, move_t move)
+int get_extension(board_t *board, move_t move)
 {
     int extension = 0;
     int to = MOVE_TO(move);
@@ -187,28 +168,37 @@ int get_extension(board_t* board, move_t move)
     return extension;
 }
 
-int negamax(board_t* board, int depth, int alpha, int beta)
+int negamax(board_t *board, int depth, int alpha, int beta, int ply)
 {
     total_positions++;
 
-    if (canceled) return 0;
-    if ((total_positions & 2047) == 0) check_time();
+    if ((total_positions & 2047) == 0)
+        check_time();
 
     // important: always keep this at the top of the function
     move_t moves[256];
     int n = gen_legal_moves(board, moves, 0);
+
     if (n == 0)
     {
         int king_sq = find_king(board, board->turn);
-        return is_square_attacked(board, idx_to_square(king_sq), board->turn == WHITE ? BLACK : WHITE) ? -100000 : 0;
+        return is_square_attacked(board, idx_to_square(king_sq), board->turn == WHITE ? BLACK : WHITE) ? -MATE_SCORE + ply : 0;
     }
 
     // 50-move rule and threefold repetition (one fold here)
-    if (board->halfmove >= 100 || is_repetition(board)) return 0;
-    
-    tt_entry_t* entry = tt_get(tt, board->hash);
+    if (board->halfmove >= 100 || is_repetition(board))
+        return 0;
+
+    tt_entry_t *entry = tt_get(tt, board->hash);
     if (entry && entry->depth >= depth)
-        return entry->eval;
+    {
+        int e = entry->eval;
+        if (e >= MATE_SCORE - 1000)
+            e -= ply;
+        if (e <= -MATE_SCORE + 1000)
+            e += ply;
+        return e;
+    }
 
     if (depth == 0)
         return search_captures(board, alpha, beta);
@@ -218,13 +208,22 @@ int negamax(board_t* board, int depth, int alpha, int beta)
     // null move pruning
     if (depth >= 3 && !board_in_check(board))
     {
+        int saved_ep = board->ep_square_idx;
+        if (saved_ep != -1)
+            board->hash ^= board->zobrist.en_passant[saved_ep % 8];
+        board->ep_square_idx = -1;
+
         board->turn = board->turn == WHITE ? BLACK : WHITE;
         board->hash ^= board->zobrist.turn;
-        // shallower search, buf if it's good it will be pruned
-        // anyway, so do it
-        int eval = -negamax(board, depth - 3, -beta, -beta + 1);
+
+        int eval = -negamax(board, depth - 3, -beta, -beta + 1, ply + 1);
+
         board->turn = board->turn == WHITE ? BLACK : WHITE;
         board->hash ^= board->zobrist.turn;
+
+        board->ep_square_idx = saved_ep;
+        if (saved_ep != -1)
+            board->hash ^= board->zobrist.en_passant[saved_ep % 8];
 
         if (eval >= beta)
             return beta;
@@ -232,7 +231,7 @@ int negamax(board_t* board, int depth, int alpha, int beta)
 
     for (size_t i = 0; i < n; i++)
     {
-        if (canceled) return alpha;
+        // if (canceled) return alpha;
         move_t move = moves[i];
         board_make_move(board, move);
         int extension = get_extension(board, move);
@@ -244,14 +243,15 @@ int negamax(board_t* board, int depth, int alpha, int beta)
 
         if (is_late)
         {
-            eval = -negamax(board, depth - 2, -alpha - 1, -alpha);
+            eval = -negamax(board, depth - 2, -alpha - 1, -alpha, ply + 1);
             if (eval > alpha)
-                eval = -negamax(board, depth - 1, -beta, -alpha);
+                eval = -negamax(board, depth - 1, -beta, -alpha, ply + 1);
         }
         else
         {
-            eval = -negamax(board, depth - 1 + extension, -beta, -alpha);
+            eval = -negamax(board, depth - 1 + extension, -beta, -alpha, ply + 1);
         }
+
         board_unmake_move(board, move);
 
         // killer move detection
@@ -261,17 +261,22 @@ int negamax(board_t* board, int depth, int alpha, int beta)
                 add_killer(depth, move);
             return beta;
         }
-        if (eval > alpha) alpha = eval;
+        if (eval > alpha)
+            alpha = eval;
     }
 
-    tt_set(tt, board->hash, depth, alpha);
+    int stored = alpha;
+    if (stored >= MATE_SCORE - 1000)
+        stored += ply;
+    if (stored <= -MATE_SCORE + 1000)
+        stored -= ply;
+    tt_set(tt, board->hash, depth, stored);
     return alpha;
 }
 
-move_t search(board_t* board, int depth, move_t pre_best_move, int* out_eval)
+move_t search(board_t *board, int depth, move_t pre_best_move, int *out_eval)
 {
 #ifdef UCI_DEBUG
-    printf("depth = %d\n", depth);
     printf("pre best move = %s\n", move_to_uci(pre_best_move));
 #endif
 
@@ -285,8 +290,12 @@ move_t search(board_t* board, int depth, move_t pre_best_move, int* out_eval)
     {
         move_t move = moves[i];
         board_make_move(board, move);
-        int eval = -negamax(board, depth - 1, -200000, 200000);
+        int eval = -negamax(board, depth - 1, -200000, 200000, 0);
         board_unmake_move(board, move);
+
+#ifdef UCI_DEBUG
+        fprintf(stderr, "    d=%d  %s  eval=%d\n", depth, move_to_uci(move), eval);
+#endif
 
         if (eval > best_eval)
         {
@@ -295,52 +304,60 @@ move_t search(board_t* board, int depth, move_t pre_best_move, int* out_eval)
         }
     }
 
+#ifdef UCI_DEBUG
+    fprintf(stderr, "depth %d -> best %s eval=%d\n", depth, move_to_uci(best), best_eval);
+#endif
+
     *out_eval = best_eval;
     return best;
 }
 
-move_t iterative_deepening(board_t* board)
+move_t iterative_deepening(board_t *board)
 {
     move_t best = 0;
     for (int depth = 1; depth < 256; depth++)
     {
         int eval;
         move_t best_move_curr = search(board, depth, best, &eval);
-        if (canceled) break;
+        if (canceled)
+            break;
         best = best_move_curr;
-        // checkmate found, don't keep searching
-        if (depth >= 2 && (eval >= 99000 || eval <= -99000)) break;
     }
     return best;
 }
 
-static move_t parse_uci_move(board_t* board, const char* s)
+static move_t parse_uci_move(board_t *board, const char *s)
 {
     int from = (s[1] - '1') * 8 + (s[0] - 'a');
-    int to   = (s[3] - '1') * 8 + (s[2] - 'a');
+    int to = (s[3] - '1') * 8 + (s[2] - 'a');
     char promo = (s[4] && s[4] != ' ' && s[4] != '\n' && s[4] != '\r') ? s[4] : 0;
 
     move_t moves[256];
     int n = gen_legal_moves(board, moves, 0);
     for (int i = 0; i < n; i++)
     {
-        if (MOVE_FROM(moves[i]) != from || MOVE_TO(moves[i]) != to) continue;
+        if (MOVE_FROM(moves[i]) != from || MOVE_TO(moves[i]) != to)
+            continue;
         if (promo)
         {
             int flag = MOVE_FLAGS(moves[i]);
-            if (promo == 'q' && flag != FLAG_PROMO_Q) continue;
-            if (promo == 'r' && flag != FLAG_PROMO_R) continue;
-            if (promo == 'b' && flag != FLAG_PROMO_B) continue;
-            if (promo == 'n' && flag != FLAG_PROMO_N) continue;
+            if (promo == 'q' && flag != FLAG_PROMO_Q)
+                continue;
+            if (promo == 'r' && flag != FLAG_PROMO_R)
+                continue;
+            if (promo == 'b' && flag != FLAG_PROMO_B)
+                continue;
+            if (promo == 'n' && flag != FLAG_PROMO_N)
+                continue;
         }
         return moves[i];
     }
     return 0;
 }
 
-void parse_position(board_t* board, const char* line)
+void parse_position(board_t *board, const char *line)
 {
-    const char* p = line + 9; // skip "position "
+    const char *p = line + 9; // skip "position "
 
     if (strncmp(p, "startpos", 8) == 0)
     {
@@ -352,26 +369,35 @@ void parse_position(board_t* board, const char* line)
         p += 4; // skip "fen "
         board_from_fen(board, p);
         int spaces = 0;
-        while (*p && spaces < 6) { if (*p++ == ' ') spaces++; }
+        while (*p && spaces < 6)
+        {
+            if (*p++ == ' ')
+                spaces++;
+        }
     }
 
     p = strstr(p, "moves");
-    if (!p) return;
+    if (!p)
+        return;
     p += 6; // skip "moves "
 
     while (*p && *p != '\n' && *p != '\r')
     {
         move_t m = parse_uci_move(board, p);
-        if (m) board_make_move(board, m);
-        while (*p && *p != ' ' && *p != '\n' && *p != '\r') p++;
-        while (*p == ' ') p++;
+        if (m)
+            board_make_move(board, m);
+        while (*p && *p != ' ' && *p != '\n' && *p != '\r')
+            p++;
+        while (*p == ' ')
+            p++;
     }
 }
 
-int parse_time(const char* line, const char* side)
+int parse_time(const char *line, const char *side)
 {
-    const char* p = strstr(line, side);
-    if (!p) return 0;
+    const char *p = strstr(line, side);
+    if (!p)
+        return 0;
     p += strlen(side) + 1;
     int time_left = 0;
     while (isdigit(*p))
@@ -416,7 +442,8 @@ void uci_loop()
             int time_left = board.turn == WHITE ? wtime : btime;
             int inc = board.turn == WHITE ? winc : binc;
             int alloc_time = time_left / 30 + inc / 2;
-            if (alloc_time == 0) alloc_time = 30000; // 30s by default
+            if (alloc_time == 0)
+                alloc_time = 30000; // 30s by default
 
             canceled = false;
             search_end = clock() + (clock_t)(alloc_time * CLOCKS_PER_SEC / 1000);
@@ -441,6 +468,12 @@ void uci_loop()
 
 int main()
 {
+    /*
+     * fen 1R6/1P3p2/5k1K/4p3/1r4P1/8/8/8 b - - 0 1
+     * black to move, eval is 110 (position better for black)
+     */
+
+    init_distances();
     uci_loop();
 
     return 0;
