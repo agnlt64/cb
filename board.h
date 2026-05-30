@@ -37,6 +37,7 @@ void board_print(board_t* board);
 piece_t board_at(board_t* board, square_t sq);
 void board_from_fen(board_t* board, const char* fen);
 bool board_in_check(board_t* board);
+void board_flip_turn(board_t* board);
 
 int find_king(board_t* board, color_t turn);
 int gen_capture_moves(board_t* board, move_t* moves);

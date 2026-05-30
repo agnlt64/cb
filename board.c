@@ -163,6 +163,11 @@ void board_print(board_t* b)
     }
 }
 
+void board_flip_turn(board_t* board)
+{
+    board->turn = board->turn == WHITE ? BLACK : WHITE;
+}
+
 int gen_king_moves(board_t* board, int sq, move_t* moves)
 {
     piece_t p = board->squares[sq];
@@ -627,7 +632,7 @@ void board_make_move(board_t* board, move_t move)
     if (board->ep_square_idx != -1)
         board->hash ^= z->en_passant[board->ep_square_idx % 8];
 
-    board->turn = board->turn == WHITE ? BLACK : WHITE;
+    board_flip_turn(board);
     board->hash ^= z->turn;
 }
 
@@ -639,7 +644,7 @@ void board_unmake_move(board_t* board, move_t move)
     int captured = MOVE_CAPTURED(move);
 
     color_t opp = board->turn;
-    board->turn = board->turn == WHITE ? BLACK : WHITE;
+    board_flip_turn(board);
 
     board_history_t s = board->history[--board->history_top];
     board->castling = s.castling;
