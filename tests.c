@@ -499,58 +499,102 @@ void test_gen_moves()
     board_init(&board);
 
     int n = 0;
- 
+
+    // startpos
+    printf("testing startpos\n");
+
     n = move_gen_test(&board, 1);
     assert(n == 20 && "https://www.chessprogramming.org/Perft_Results");
+    printf("    depth 1 is ok\n");
 
     n = move_gen_test(&board, 2);
     assert(n == 400 && "https://www.chessprogramming.org/Perft_Results");
+    printf("    depth 2 is ok\n");
 
     n = move_gen_test(&board, 3);
     assert(n == 8902 && "https://www.chessprogramming.org/Perft_Results");
+    printf("    depth 3 is ok\n");
 
     n = move_gen_test(&board, 4);
     assert(n == 197281 && "https://www.chessprogramming.org/Perft_Results");
+    printf("    depth 4 is ok\n");
 
     n = move_gen_test(&board, 5);
     assert(n == 4865609 && "https://www.chessprogramming.org/Perft_Results");
+    printf("    depth 5 is ok\n");
+
+    // kiwipete
+    printf("testing kiwipete\n");
+    board_from_fen(&board, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ");
+    
+    n = move_gen_test(&board, 1);
+    assert(n == 48 && "https://www.chessprogramming.org/Perft_Results");
+    printf("    depth 1 is ok\n");
+
+    n = move_gen_test(&board, 2);
+    assert(n == 2039 && "https://www.chessprogramming.org/Perft_Results");
+    printf("    depth 2 is ok\n");
+
+    n = move_gen_test(&board, 3);
+    assert(n == 97862 && "https://www.chessprogramming.org/Perft_Results");
+    printf("    depth 3 is ok\n");
+
+    n = move_gen_test(&board, 4);
+    assert(n == 4085603 && "https://www.chessprogramming.org/Perft_Results");
+    printf("    depth 4 is ok\n");
+
+    n = move_gen_test(&board, 5);
+    assert(n == 193690690 && "https://www.chessprogramming.org/Perft_Results");
+    printf("    depth 5 is ok\n");
 
     // position 5 from chessprogramming perft
+    printf("testing position 5\n");
     board_from_fen(&board, "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8");
     
     n = move_gen_test(&board, 1);
     assert(n == 44 && "https://www.chessprogramming.org/Perft_Results");
+    printf("    depth 1 is ok\n");
 
     n = move_gen_test(&board, 2);
     assert(n == 1486 && "https://www.chessprogramming.org/Perft_Results");
+    printf("    depth 2 is ok\n");
 
     n = move_gen_test(&board, 3);
     assert(n == 62379 && "https://www.chessprogramming.org/Perft_Results");
+    printf("    depth 3 is ok\n");
 
     n = move_gen_test(&board, 4);
     assert(n == 2103487 && "https://www.chessprogramming.org/Perft_Results");
+    printf("    depth 4 is ok\n");
 
     n = move_gen_test(&board, 5);
     assert(n == 89941194 && "https://www.chessprogramming.org/Perft_Results");
+    printf("    depth 5 is ok\n");
 
     // position 3 from chessprogramming perft
+    printf("testing position 3\n");
     board_from_fen(&board, "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1 ");
     
     n = move_gen_test(&board, 1);
     assert(n == 14 && "https://www.chessprogramming.org/Perft_Results");
-
+    printf("    depth 1 is ok\n");
+    
     n = move_gen_test(&board, 2);
     assert(n == 191 && "https://www.chessprogramming.org/Perft_Results");
+    printf("    depth 2 is ok\n");
 
     n = move_gen_test(&board, 3);
     assert(n == 2812 && "https://www.chessprogramming.org/Perft_Results");
+    printf("    depth 3 is ok\n");
 
     n = move_gen_test(&board, 4);
     assert(n == 43238 && "https://www.chessprogramming.org/Perft_Results");
+    printf("    depth 4 is ok\n");
 
     n = move_gen_test(&board, 5);
     assert(n == 674624 && "https://www.chessprogramming.org/Perft_Results");
-    
+    printf("    depth 5 is ok\n");
+
     // after ply 5, move gen is really slow so i don't test it further
     printf("gen moves is ok ✅\n");
 }
