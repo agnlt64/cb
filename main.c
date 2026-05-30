@@ -214,12 +214,12 @@ int negamax(board_t *board, int depth, int alpha, int beta, int ply)
             board->hash ^= board->zobrist.en_passant[saved_ep % 8];
         board->ep_square_idx = -1;
 
-        board->turn = board->turn == WHITE ? BLACK : WHITE;
+        board_flip_turn(board);
         board->hash ^= board->zobrist.turn;
 
         int eval = -negamax(board, depth - 3, -beta, -beta + 1, ply + 1);
 
-        board->turn = board->turn == WHITE ? BLACK : WHITE;
+        board_flip_turn(board);
         board->hash ^= board->zobrist.turn;
 
         board->ep_square_idx = saved_ep;
@@ -411,16 +411,16 @@ void parse_position(board_t *board, const char *line)
     }
 }
 
-int parse_time(const char *line, const char *side)
+int parse_int(const char *line, const char *side)
 {
     const char *p = strstr(line, side);
     if (!p)
         return 0;
     p += strlen(side) + 1;
-    int time_left = 0;
+    int nb = 0;
     while (isdigit(*p))
-        time_left = 10 * time_left + (*p++ - '0');
-    return time_left;
+        nb = 10 * nb + (*p++ - '0');
+    return nb;
 }
 
 void uci_loop()
@@ -452,25 +452,33 @@ void uci_loop()
         }
         else if (strncmp(line, "go", 2) == 0)
         {
-            int btime = parse_time(line, "btime");
-            int wtime = parse_time(line, "wtime");
-            int binc = parse_time(line, "binc");
-            int winc = parse_time(line, "winc");
-
-            int time_left = board.turn == WHITE ? wtime : btime;
-            int inc = board.turn == WHITE ? winc : binc;
-            int alloc_time = time_left / 30 + inc / 2;
-            if (alloc_time == 0)
-                alloc_time = 30000; // 30s by default
-
-            canceled = false;
-            search_end = clock() + (clock_t)(alloc_time * CLOCKS_PER_SEC / 1000);
-#ifdef UCI_DEBUG
-            printf("using %dms\n", alloc_time);
-            printf("black = %d + %d, white = %d + %d\n", btime, binc, wtime, winc);
-#endif
-            move_t best = iterative_deepening(&board);
-            printf("bestmove %s\n", move_to_uci(best));
+            int perft = parse_int(line, "perft");
+            if (perft != 0)
+            {
+                board_perft(&board, perft, true);
+            }
+            else
+            {
+                int btime = parse_int(line, "btime");
+                int wtime = parse_int(line, "wtime");
+                int binc = parse_int(line, "binc");
+                int winc = parse_int(line, "winc");
+    
+                int time_left = board.turn == WHITE ? wtime : btime;
+                int inc = board.turn == WHITE ? winc : binc;
+                int alloc_time = time_left / 30 + inc / 2;
+                if (alloc_time == 0)
+                    alloc_time = 30000; // 30s by default
+    
+                canceled = false;
+                search_end = clock() + (clock_t)(alloc_time * CLOCKS_PER_SEC / 1000);
+    #ifdef UCI_DEBUG
+                printf("using %dms\n", alloc_time);
+                printf("black = %d + %d, white = %d + %d\n", btime, binc, wtime, winc);
+    #endif
+                move_t best = iterative_deepening(&board);
+                printf("bestmove %s\n", move_to_uci(best));
+            }
         }
         else if (strncmp(line, "d", 1) == 0)
         {

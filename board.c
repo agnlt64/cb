@@ -11,10 +11,10 @@
 #define B_KSIDE 0b0010
 #define B_QSIDE 0b0001
 
-uint64_t zobrist_from_board(board_t* board)
+uint64_t zobrist_from_board(board_t *board)
 {
     uint64_t new_key = 0;
-    zobrist_t* z = &board->zobrist;
+    zobrist_t *z = &board->zobrist;
 
     for (size_t sq = 0; sq < 64; sq++)
     {
@@ -34,7 +34,7 @@ uint64_t zobrist_from_board(board_t* board)
     return new_key;
 }
 
-void board_init(board_t* board)
+void board_init(board_t *board)
 {
     board_from_fen(board, DEFAULT_FEN);
     board->turn = WHITE;
@@ -55,7 +55,7 @@ static const int diag_file_offsets[4] = {1, -1, -1, 1};
 static const int orth_offsets[4] = {8, -8, 1, -1};
 static const int orth_file_offsets[4] = {0, 0, 1, -1};
 
-void board_from_fen(board_t* board, const char* fen)
+void board_from_fen(board_t *board, const char *fen)
 {
     memset(board, 0, sizeof(*board));
     int file = 0;
@@ -63,9 +63,9 @@ void board_from_fen(board_t* board, const char* fen)
     int space_count = 0;
     board->ep_square_idx = -1;
 
-    for (const char* p = fen;* p != '\0'; p++)
+    for (const char *p = fen; *p != '\0'; p++)
     {
-        char c =* p;
+        char c = *p;
         if (c == ' ')
             space_count++;
 
@@ -127,7 +127,7 @@ void board_from_fen(board_t* board, const char* fen)
             else if (islower(c))
             {
                 ep_file = c - 'a';
-                ep_rank =* (p + 1) - '1';
+                ep_rank = *(p + 1) - '1';
                 board->ep_square_idx = ep_rank * RANKS + ep_file;
             }
         }
@@ -145,12 +145,12 @@ void board_from_fen(board_t* board, const char* fen)
     board->hash = zobrist_from_board(board);
 }
 
-piece_t board_at(board_t* board, square_t sq)
+piece_t board_at(board_t *board, square_t sq)
 {
     return board->squares[square_to_idx(sq)];
 }
 
-void board_print(board_t* b)
+void board_print(board_t *b)
 {
     for (int rank = RANKS - 1; rank >= 0; rank--)
     {
@@ -163,12 +163,56 @@ void board_print(board_t* b)
     }
 }
 
-void board_flip_turn(board_t* board)
+void board_flip_turn(board_t *board)
 {
     board->turn = board->turn == WHITE ? BLACK : WHITE;
 }
 
-int gen_king_moves(board_t* board, int sq, move_t* moves)
+static int perft_inner(board_t *board, int depth)
+{
+    if (depth == 0)
+        return 1;
+
+    move_t moves[512];
+    int n = gen_legal_moves(board, moves, 0);
+
+    int num_pos = 0;
+    for (size_t i = 0; i < n; i++)
+    {
+        board_make_move(board, moves[i]);
+        num_pos += perft_inner(board, depth - 1);
+        board_unmake_move(board, moves[i]);
+    }
+    return num_pos;
+}
+
+int board_perft(board_t *board, int depth, bool verbose)
+{
+    if (depth == 0)
+        return 1;
+
+    move_t moves[512];
+    int n = gen_legal_moves(board, moves, 0);
+
+    int num_pos = 0;
+    for (size_t i = 0; i < n; i++)
+    {
+        board_make_move(board, moves[i]);
+        int inc = perft_inner(board, depth - 1);
+        num_pos += inc;
+        board_unmake_move(board, moves[i]);
+
+        if (verbose)
+            printf("%s: %d\n", move_to_uci(moves[i]), inc);
+    }
+
+    if (verbose)
+        printf("\nNodes searched: %d\n", num_pos);
+
+    return num_pos;
+}
+
+int gen_king_moves(board_t *board, int sq, move_t *moves)
 {
     piece_t p = board->squares[sq];
     assert(piece_type(p) == KING && "invalid piece type for gen_king_moves");
@@ -239,7 +283,7 @@ int gen_king_moves(board_t* board, int sq, move_t* moves)
     return count;
 }
 
-int gen_knight_moves(board_t* board, int sq, move_t* moves)
+int gen_knight_moves(board_t *board, int sq, move_t *moves)
 {
     piece_t p = board->squares[sq];
     assert(piece_type(p) == KNIGHT && "invalid piece type for gen_knight_moves");
@@ -269,7 +313,7 @@ int gen_knight_moves(board_t* board, int sq, move_t* moves)
     return count;
 }
 
-int gen_diag_moves(board_t* board, int sq, move_t* moves)
+int gen_diag_moves(board_t *board, int sq, move_t *moves)
 {
     piece_t p = board->squares[sq];
     if (piece_color(p) != board->turn)
@@ -311,7 +355,7 @@ int gen_diag_moves(board_t* board, int sq, move_t* moves)
     return count;
 }
 
-int gen_orth_moves(board_t* board, int sq, move_t* moves)
+int gen_orth_moves(board_t *board, int sq, move_t *moves)
 {
     piece_t p = board->squares[sq];
     if (piece_color(p) != board->turn)
@@ -353,11 +397,12 @@ int gen_orth_moves(board_t* board, int sq, move_t* moves)
     return count;
 }
 
-int gen_pawn_moves(board_t* board, int sq, move_t* moves)
+int gen_pawn_moves(board_t *board, int sq, move_t *moves)
 {
     piece_t p = board->squares[sq];
     assert(piece_type(p) == PAWN && "invalid piece type for gen_pawn_moves");
-    if (piece_color(p) != board->turn) return 0;
+    if (piece_color(p) != board->turn)
+        return 0;
 
     int count = 0;
     int sq_file = sq % FILES;
@@ -396,8 +441,10 @@ int gen_pawn_moves(board_t* board, int sq, move_t* moves)
     for (int i = 0; i < 2; i++)
     {
         int target = sq + cap_offsets[i];
-        if (target < 0 || target >= FILES * RANKS) continue;
-        if ((target % FILES) - sq_file != cap_file_offsets[i]) continue; // wrap
+        if (target < 0 || target >= FILES * RANKS)
+            continue;
+        if ((target % FILES) - sq_file != cap_file_offsets[i])
+            continue; // wrap
 
         if (target == board->ep_square_idx)
         {
@@ -410,7 +457,8 @@ int gen_pawn_moves(board_t* board, int sq, move_t* moves)
         }
 
         piece_t at = board->squares[target];
-        if (piece_type(at) == NO_PIECE || piece_color(at) == board->turn) continue;
+        if (piece_type(at) == NO_PIECE || piece_color(at) == board->turn)
+            continue;
 
         if (target / RANKS == promo_rank)
         {
@@ -428,42 +476,53 @@ int gen_pawn_moves(board_t* board, int sq, move_t* moves)
     return count;
 }
 
-int gen_pseudo_legal_moves(board_t* board, move_t* moves)
+int gen_pseudo_legal_moves(board_t *board, move_t *moves)
 {
     int count = 0;
 
     for (size_t sq = 0; sq < FILES * RANKS; sq++)
     {
         piece_t p = board->squares[sq];
-        if (piece_color(p) != board->turn) continue;
+        if (piece_color(p) != board->turn)
+            continue;
 
         switch (piece_type(p))
         {
-            case KING: count += gen_king_moves(board, sq, moves + count); break;
-            case KNIGHT: count += gen_knight_moves(board, sq, moves + count); break;
-            case BISHOP: count += gen_diag_moves(board, sq, moves + count); break;
-            case ROOK: count += gen_orth_moves(board, sq, moves + count); break;
-            case PAWN: count += gen_pawn_moves(board, sq, moves + count); break;
-            case QUEEN:
-                count += gen_diag_moves(board, sq, moves + count);
-                count += gen_orth_moves(board, sq, moves + count);
-                break;
-            case NO_PIECE:
-            default:
-                break;
+        case KING:
+            count += gen_king_moves(board, sq, moves + count);
+            break;
+        case KNIGHT:
+            count += gen_knight_moves(board, sq, moves + count);
+            break;
+        case BISHOP:
+            count += gen_diag_moves(board, sq, moves + count);
+            break;
+        case ROOK:
+            count += gen_orth_moves(board, sq, moves + count);
+            break;
+        case PAWN:
+            count += gen_pawn_moves(board, sq, moves + count);
+            break;
+        case QUEEN:
+            count += gen_diag_moves(board, sq, moves + count);
+            count += gen_orth_moves(board, sq, moves + count);
+            break;
+        case NO_PIECE:
+        default:
+            break;
         }
     }
 
     return count;
 }
 
-bool board_in_check(board_t* board)
+bool board_in_check(board_t *board)
 {
     int king_sq = find_king(board, board->turn);
     return is_square_attacked(board, idx_to_square(king_sq), board->turn == WHITE ? BLACK : WHITE);
 }
 
-int find_king(board_t* board, color_t turn)
+int find_king(board_t *board, color_t turn)
 {
     int king_sq = -1;
     for (int sq = 0; sq < 64; sq++)
@@ -478,7 +537,7 @@ int find_king(board_t* board, color_t turn)
 }
 
 // to_explore will be in first position in the moves array
-int gen_legal_moves(board_t* board, move_t* moves, move_t to_explore)
+int gen_legal_moves(board_t *board, move_t *moves, move_t to_explore)
 {
     move_t pseudo[512];
     int n = gen_pseudo_legal_moves(board, pseudo);
@@ -490,7 +549,8 @@ int gen_legal_moves(board_t* board, move_t* moves, move_t to_explore)
 
     for (size_t i = 0; i < n; i++)
     {
-        if (pseudo[i] == to_explore) continue;
+        if (pseudo[i] == to_explore)
+            continue;
 
         board_make_move(board, pseudo[i]);
         int king_sq = find_king(board, turn);
@@ -504,7 +564,7 @@ int gen_legal_moves(board_t* board, move_t* moves, move_t to_explore)
     return count;
 }
 
-int gen_capture_moves(board_t* board, move_t* moves)
+int gen_capture_moves(board_t *board, move_t *moves)
 {
     move_t m[512];
     int n = gen_legal_moves(board, m, 0);
@@ -530,13 +590,13 @@ int gen_capture_moves(board_t* board, move_t* moves)
     return count;
 }
 
-void board_make_move(board_t* board, move_t move)
+void board_make_move(board_t *board, move_t move)
 {
     int from = MOVE_FROM(move);
     int to = MOVE_TO(move);
     int flag = MOVE_FLAGS(move);
     piece_t moving = board->squares[from];
-    zobrist_t* z = &board->zobrist;
+    zobrist_t *z = &board->zobrist;
 
     if (piece_type(moving) == NO_PIECE || piece_color(moving) != board->turn)
     {
@@ -545,12 +605,11 @@ void board_make_move(board_t* board, move_t move)
 #else
         // push dummy history entry so that unmake_move
         // never corrupts the actual history
-        board->history[board->history_top++] = (board_history_t) {
+        board->history[board->history_top++] = (board_history_t){
             .castling = board->castling,
             .ep_square_idx = board->ep_square_idx,
             .halfmove = board->halfmove,
-            .hash = board->hash
-        };
+            .hash = board->hash};
         board_flip_turn(board);
         return;
 #endif
@@ -576,7 +635,8 @@ void board_make_move(board_t* board, move_t move)
     else
         board->halfmove++;
 
-    if (board->turn == BLACK) board->fullmove++;
+    if (board->turn == BLACK)
+        board->fullmove++;
 
     board->ep_square_idx = -1;
     board->squares[to] = moving;
@@ -584,57 +644,71 @@ void board_make_move(board_t* board, move_t move)
 
     switch (flag)
     {
-        case FLAG_EP:
-        {
-            int cap_sq = to + (board->turn == WHITE ? -8 : 8);
-            board->squares[cap_sq] = NO_PIECE;
-            board->hash ^= z->pieces[board->turn == WHITE ? (BLACK|PAWN) : (WHITE|PAWN)][cap_sq];
-            break;
-        }
-        case FLAG_CASTLE_K:
-        {
-            int rf = (board->turn == WHITE ? square_to_idx(H1) : square_to_idx(H8));
-            int rt = (board->turn == WHITE ? square_to_idx(F1) : square_to_idx(F8));
-            board->squares[rt] = board->squares[rf];
-            board->squares[rf] = NO_PIECE;
-            board->hash ^= z->pieces[board->turn | ROOK][rf];
-            board->hash ^= z->pieces[board->turn | ROOK][rt];
-            break;
-        }
-        case FLAG_CASTLE_Q:
-        {
-            int rf = (board->turn == WHITE ? square_to_idx(A1) : square_to_idx(A8));
-            int rt = (board->turn == WHITE ? square_to_idx(D1) : square_to_idx(D8));
-            board->squares[rt] = board->squares[rf];
-            board->squares[rf] = NO_PIECE;
-            board->hash ^= z->pieces[board->turn | ROOK][rf];
-            board->hash ^= z->pieces[board->turn | ROOK][rt];
-            break;
-        }
-        case FLAG_PROMO_N: board->squares[to] = board->turn | KNIGHT; break;
-        case FLAG_PROMO_B: board->squares[to] = board->turn | BISHOP; break;
-        case FLAG_PROMO_R: board->squares[to] = board->turn | ROOK; break;
-        case FLAG_PROMO_Q: board->squares[to] = board->turn | QUEEN; break;
-        default:
-        {
-            // double pawn push
-            if (piece_type(moving) == PAWN && (to - from == 16 || from - to == 16))
-                board->ep_square_idx = (from + to) / 2;
-            break;
-        }
+    case FLAG_EP:
+    {
+        int cap_sq = to + (board->turn == WHITE ? -8 : 8);
+        board->squares[cap_sq] = NO_PIECE;
+        board->hash ^= z->pieces[board->turn == WHITE ? (BLACK | PAWN) : (WHITE | PAWN)][cap_sq];
+        break;
+    }
+    case FLAG_CASTLE_K:
+    {
+        int rf = (board->turn == WHITE ? square_to_idx(H1) : square_to_idx(H8));
+        int rt = (board->turn == WHITE ? square_to_idx(F1) : square_to_idx(F8));
+        board->squares[rt] = board->squares[rf];
+        board->squares[rf] = NO_PIECE;
+        board->hash ^= z->pieces[board->turn | ROOK][rf];
+        board->hash ^= z->pieces[board->turn | ROOK][rt];
+        break;
+    }
+    case FLAG_CASTLE_Q:
+    {
+        int rf = (board->turn == WHITE ? square_to_idx(A1) : square_to_idx(A8));
+        int rt = (board->turn == WHITE ? square_to_idx(D1) : square_to_idx(D8));
+        board->squares[rt] = board->squares[rf];
+        board->squares[rf] = NO_PIECE;
+        board->hash ^= z->pieces[board->turn | ROOK][rf];
+        board->hash ^= z->pieces[board->turn | ROOK][rt];
+        break;
+    }
+    case FLAG_PROMO_N:
+        board->squares[to] = board->turn | KNIGHT;
+        break;
+    case FLAG_PROMO_B:
+        board->squares[to] = board->turn | BISHOP;
+        break;
+    case FLAG_PROMO_R:
+        board->squares[to] = board->turn | ROOK;
+        break;
+    case FLAG_PROMO_Q:
+        board->squares[to] = board->turn | QUEEN;
+        break;
+    default:
+    {
+        // double pawn push
+        if (piece_type(moving) == PAWN && (to - from == 16 || from - to == 16))
+            board->ep_square_idx = (from + to) / 2;
+        break;
+    }
     }
 
     board->hash ^= z->pieces[board->squares[to]][to];
 
     if (piece_type(moving) == KING)
     {
-        if (board->turn == WHITE) board->castling &= ~(W_KSIDE | W_QSIDE);
-        else                      board->castling &= ~(B_KSIDE | B_QSIDE);
+        if (board->turn == WHITE)
+            board->castling &= ~(W_KSIDE | W_QSIDE);
+        else
+            board->castling &= ~(B_KSIDE | B_QSIDE);
     }
-    if (from == square_to_idx(A1) || to == square_to_idx(A1)) board->castling &= ~W_QSIDE;
-    if (from == square_to_idx(H1) || to == square_to_idx(H1)) board->castling &= ~W_KSIDE;
-    if (from == square_to_idx(A8) || to == square_to_idx(A8)) board->castling &= ~B_QSIDE;
-    if (from == square_to_idx(H8) || to == square_to_idx(H8)) board->castling &= ~B_KSIDE;
+    if (from == square_to_idx(A1) || to == square_to_idx(A1))
+        board->castling &= ~W_QSIDE;
+    if (from == square_to_idx(H1) || to == square_to_idx(H1))
+        board->castling &= ~W_KSIDE;
+    if (from == square_to_idx(A8) || to == square_to_idx(A8))
+        board->castling &= ~B_QSIDE;
+    if (from == square_to_idx(H8) || to == square_to_idx(H8))
+        board->castling &= ~B_KSIDE;
 
     board->hash ^= z->castling[board->castling];
 
@@ -645,7 +719,7 @@ void board_make_move(board_t* board, move_t move)
     board->hash ^= z->turn;
 }
 
-void board_unmake_move(board_t* board, move_t move)
+void board_unmake_move(board_t *board, move_t move)
 {
     int from = MOVE_FROM(move);
     int to = MOVE_TO(move);
@@ -669,41 +743,41 @@ void board_unmake_move(board_t* board, move_t move)
 
     switch (flag)
     {
-        case FLAG_EP:
-        {
-            int cap_sq = to + (board->turn == WHITE ? -8 : 8);
-            board->squares[cap_sq] = opp | PAWN;
-            board->squares[to] = NO_PIECE;
-            break;
-        }
-        case FLAG_CASTLE_K:
-        {
-            int rf = (board->turn == WHITE ? square_to_idx(H1) : square_to_idx(H8));
-            int rt = (board->turn == WHITE ? square_to_idx(F1) : square_to_idx(F8));
-            board->squares[rf] = board->squares[rt];
-            board->squares[rt] = NO_PIECE;
-            break;
-        }
-        case FLAG_CASTLE_Q:
-        {
-            int rf = (board->turn == WHITE ? square_to_idx(A1) : square_to_idx(A8));
-            int rt = (board->turn == WHITE ? square_to_idx(D1) : square_to_idx(D8));
-            board->squares[rf] = board->squares[rt];
-            board->squares[rt] = NO_PIECE;
-            break;
-        }
-        case FLAG_PROMO_N:
-        case FLAG_PROMO_B:
-        case FLAG_PROMO_R:
-        case FLAG_PROMO_Q:
-            board->squares[from] = board->turn | PAWN;
-            break;
-        default:
-            break;
+    case FLAG_EP:
+    {
+        int cap_sq = to + (board->turn == WHITE ? -8 : 8);
+        board->squares[cap_sq] = opp | PAWN;
+        board->squares[to] = NO_PIECE;
+        break;
+    }
+    case FLAG_CASTLE_K:
+    {
+        int rf = (board->turn == WHITE ? square_to_idx(H1) : square_to_idx(H8));
+        int rt = (board->turn == WHITE ? square_to_idx(F1) : square_to_idx(F8));
+        board->squares[rf] = board->squares[rt];
+        board->squares[rt] = NO_PIECE;
+        break;
+    }
+    case FLAG_CASTLE_Q:
+    {
+        int rf = (board->turn == WHITE ? square_to_idx(A1) : square_to_idx(A8));
+        int rt = (board->turn == WHITE ? square_to_idx(D1) : square_to_idx(D8));
+        board->squares[rf] = board->squares[rt];
+        board->squares[rt] = NO_PIECE;
+        break;
+    }
+    case FLAG_PROMO_N:
+    case FLAG_PROMO_B:
+    case FLAG_PROMO_R:
+    case FLAG_PROMO_Q:
+        board->squares[from] = board->turn | PAWN;
+        break;
+    default:
+        break;
     }
 }
 
-bool is_square_attacked(board_t* board, square_t sq, color_t color)
+bool is_square_attacked(board_t *board, square_t sq, color_t color)
 {
     return (
         can_knight_attack(board, sq, color) ||
@@ -713,7 +787,7 @@ bool is_square_attacked(board_t* board, square_t sq, color_t color)
         can_king_attack(board, sq, color));
 }
 
-bool can_knight_attack(board_t* board, square_t sq, color_t color)
+bool can_knight_attack(board_t *board, square_t sq, color_t color)
 {
     int idx = square_to_idx(sq);
     int sq_file = sq.file;
@@ -734,7 +808,7 @@ bool can_knight_attack(board_t* board, square_t sq, color_t color)
     return false;
 }
 
-bool can_king_attack(board_t* board, square_t sq, color_t color)
+bool can_king_attack(board_t *board, square_t sq, color_t color)
 {
     int idx = square_to_idx(sq);
     int sq_file = sq.file;
@@ -755,7 +829,7 @@ bool can_king_attack(board_t* board, square_t sq, color_t color)
     return false;
 }
 
-bool can_pawn_attack(board_t* board, square_t sq, color_t color)
+bool can_pawn_attack(board_t *board, square_t sq, color_t color)
 {
     int offsets[2] = {color == WHITE ? -9 : 9, color == WHITE ? -7 : 7};
     int file_offsets[2] = {color == WHITE ? -1 : 1, color == WHITE ? 1 : -1};
@@ -779,7 +853,7 @@ bool can_pawn_attack(board_t* board, square_t sq, color_t color)
     return false;
 }
 
-bool can_diag_attack(board_t* board, square_t sq, color_t color)
+bool can_diag_attack(board_t *board, square_t sq, color_t color)
 {
     int idx = square_to_idx(sq);
 
@@ -806,7 +880,8 @@ bool can_diag_attack(board_t* board, square_t sq, color_t color)
                     return true;
                 break; // ally piece blocks
             }
-            if (piece_type(piece) != NO_PIECE) break; // enemy piece blocks
+            if (piece_type(piece) != NO_PIECE)
+                break; // enemy piece blocks
 
             curr = next;
             curr_file = next_file;
@@ -815,7 +890,7 @@ bool can_diag_attack(board_t* board, square_t sq, color_t color)
     return false;
 }
 
-bool can_orth_attack(board_t* board, square_t sq, color_t color)
+bool can_orth_attack(board_t *board, square_t sq, color_t color)
 {
     int idx = square_to_idx(sq);
 
@@ -842,7 +917,8 @@ bool can_orth_attack(board_t* board, square_t sq, color_t color)
                     return true;
                 break; // ally piece blocks
             }
-            if (piece_type(piece) != NO_PIECE) break; // enemy piece blocks
+            if (piece_type(piece) != NO_PIECE)
+                break; // enemy piece blocks
 
             curr = next;
             curr_file = next_file;
