@@ -628,6 +628,25 @@ void test_unmake_move()
     printf("unmake move is ok ✅\n");
 }
 
+void test_king_square()
+{
+    board_t board = {0};
+    board_init(&board);
+
+    assert(board.king_sq[0] == square_to_idx(E1) && board.king_sq[1] == square_to_idx(E8));
+
+    board_from_fen(&board, "7k/8/8/8/8/8/1K6/8 w - - 0 1");
+    assert(board.king_sq[0] == square_to_idx(B2) && board.king_sq[1] == square_to_idx(H8));
+
+    board_from_fen(&board, "8/2K5/8/8/4k3/8/8/8 w - - 0 1");
+    assert(board.king_sq[0] == square_to_idx(C7) && board.king_sq[1] == square_to_idx(E4));
+
+    board_from_fen(&board, "8/8/8/3K4/8/3k4/8/8 w - - 0 1");
+    assert(board.king_sq[0] == square_to_idx(D5) && board.king_sq[1] == square_to_idx(D3));
+
+    printf("king squares are ok ✅\n");
+}
+
 void test_in_ckeck()
 {
     board_t board = {0};
@@ -662,6 +681,7 @@ int main()
     test_gen_capture_moves();
     test_make_move();
     test_unmake_move();
+    test_king_square();
     test_in_ckeck();
 
     return 0;

@@ -63,9 +63,9 @@ int mop_up(board_t* board, color_t turn, material_info_t my_material, material_i
     if (my_material.material_score > enemy_material.material_score + piece_value(PAWN) * 2 && enemy_material.endgame_t > 0)
     {
         int score = 0;
-        int friendly_king = find_king(board, turn);
-        int opp_king = find_king(board, turn == WHITE ? BLACK : WHITE);
-        assert(friendly_king >= 0 && opp_king >= 0 && "find_king returned -1");
+        int friendly_king = FIND_KING(board, turn);
+        int opp_king = FIND_KING(board, turn == WHITE ? BLACK : WHITE);
+        assert(friendly_king >= 0 && opp_king >= 0 && "unreachable i think");
         score += (14 - orthogonal_distance[friendly_king][opp_king]) * 4;
         score += centre_manhattan_distance[opp_king] * 10;
         return (int)(score * enemy_material.endgame_t);

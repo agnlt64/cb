@@ -182,7 +182,7 @@ int negamax(board_t *board, int depth, int alpha, int beta, int ply)
 
     if (n == 0)
     {
-        int king_sq = find_king(board, board->turn);
+        int king_sq = FIND_KING(board, board->turn);
         return is_square_attacked(board, idx_to_square(king_sq), board->turn == WHITE ? BLACK : WHITE) ? -MATE_SCORE + ply : 0;
     }
 

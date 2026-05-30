@@ -12,6 +12,13 @@
 #define RANKS 8
 #define FILES 8
 
+#define COLOR_IDX(color) ((color) == WHITE ? 0 : 1)
+
+// assume that king_sq is never empty
+// it should never be, because king_sq is
+// populated with from_fen
+#define FIND_KING(board, turn) (board)->king_sq[COLOR_IDX(turn)]
+
 typedef struct board_history {
     int castling;
     int ep_square_idx;
@@ -21,6 +28,7 @@ typedef struct board_history {
 
 typedef struct board {
     int squares[FILES * RANKS];
+    int king_sq[2];
     color_t turn;
     int castling; // 4 bits, KQkq
     int ep_square_idx;
@@ -40,7 +48,6 @@ bool board_in_check(board_t* board);
 void board_flip_turn(board_t* board);
 int board_perft(board_t* board, int depth, bool verbose);
 
-int find_king(board_t* board, color_t turn);
 int gen_capture_moves(board_t* board, move_t* moves);
 int gen_legal_moves(board_t* board, move_t* moves, move_t to_explore);
 int gen_pseudo_legal_moves(board_t* board, move_t* moves);

@@ -85,7 +85,10 @@ void board_from_fen(board_t *board, const char *fen)
                 {
                     int color = isupper(c) ? WHITE : BLACK;
                     int type = CHAR_TO_PIECE[tolower(c)];
-                    board->squares[rank * RANKS + file] = type | color;
+                    int sq_idx = rank * RANKS + file;
+                    if (type == KING)
+                        board->king_sq[COLOR_IDX(color)] = sq_idx;
+                    board->squares[sq_idx] = type | color;
                     file++;
                 }
             }
@@ -518,22 +521,8 @@ int gen_pseudo_legal_moves(board_t *board, move_t *moves)
 
 bool board_in_check(board_t *board)
 {
-    int king_sq = find_king(board, board->turn);
+    int king_sq = FIND_KING(board, board->turn);
     return is_square_attacked(board, idx_to_square(king_sq), board->turn == WHITE ? BLACK : WHITE);
-}
-
-int find_king(board_t *board, color_t turn)
-{
-    int king_sq = -1;
-    for (int sq = 0; sq < 64; sq++)
-    {
-        if (board->squares[sq] == (turn | KING))
-        {
-            king_sq = sq;
-            break;
-        }
-    }
-    return king_sq;
 }
 
 // to_explore will be in first position in the moves array
@@ -553,7 +542,7 @@ int gen_legal_moves(board_t *board, move_t *moves, move_t to_explore)
             continue;
 
         board_make_move(board, pseudo[i]);
-        int king_sq = find_king(board, turn);
+        int king_sq = FIND_KING(board, turn);
 
         square_t king = idx_to_square(king_sq);
         if (!is_square_attacked(board, king, board->turn))
@@ -641,6 +630,9 @@ void board_make_move(board_t *board, move_t move)
     board->ep_square_idx = -1;
     board->squares[to] = moving;
     board->squares[from] = NO_PIECE;
+
+    if (piece_type(moving) == KING)
+        board->king_sq[COLOR_IDX(board->turn)] = to;
 
     switch (flag)
     {
@@ -740,6 +732,9 @@ void board_unmake_move(board_t *board, move_t move)
 
     board->squares[from] = board->squares[to];
     board->squares[to] = captured ? (captured | opp) : NO_PIECE;
+
+    if (piece_type(board->squares[from]) == KING)
+        board->king_sq[COLOR_IDX(board->turn)] = from;
 
     switch (flag)
     {
