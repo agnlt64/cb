@@ -533,7 +533,14 @@ void board_make_move(board_t* board, move_t move)
     piece_t moving = board->squares[from];
     zobrist_t* z = &board->zobrist;
 
-    if (piece_type(moving) == NO_PIECE || piece_color(moving) != board->turn) return;
+    if (piece_type(moving) == NO_PIECE || piece_color(moving) != board->turn)
+    {
+#ifdef UCI_DEBUG
+        assert(false && "unreachable");
+#else
+        return;
+#endif
+    }
 
     board->history[board->history_top++] = (board_history_t){
         .castling = board->castling,

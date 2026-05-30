@@ -6,6 +6,7 @@
 
 #include "board.h"
 #include "tt.h"
+#include "squares.h"
 #include "evaluation.h"
 #include "precomputed_move_data.h"
 
@@ -332,15 +333,30 @@ static move_t parse_uci_move(board_t *board, const char *s)
     int to = (s[3] - '1') * 8 + (s[2] - 'a');
     char promo = (s[4] && s[4] != ' ' && s[4] != '\n' && s[4] != '\r') ? s[4] : 0;
 
+    // e1h1 is valid UCI for castling kingside
+    // same for e1a1, e8h8 and e8a8
+    // but this engine only understands e1g1 and so on
+    if (from == square_to_idx(E1) && to == square_to_idx(H1))
+        to = square_to_idx(G1);
+    if (from == square_to_idx(E1) && to == square_to_idx(A1))
+        to = square_to_idx(C1);
+    if (from == square_to_idx(E8) && to == square_to_idx(H8))
+        to = square_to_idx(G8);
+    if (from == square_to_idx(E8) && to == square_to_idx(A8))
+        to = square_to_idx(C8);
+
     move_t moves[256];
     int n = gen_legal_moves(board, moves, 0);
     for (int i = 0; i < n; i++)
     {
-        if (MOVE_FROM(moves[i]) != from || MOVE_TO(moves[i]) != to)
+        move_t m = moves[i];
+
+        if (MOVE_FROM(m) != from || MOVE_TO(m) != to)
             continue;
+
+        int flag = MOVE_FLAGS(m);
         if (promo)
         {
-            int flag = MOVE_FLAGS(moves[i]);
             if (promo == 'q' && flag != FLAG_PROMO_Q)
                 continue;
             if (promo == 'r' && flag != FLAG_PROMO_R)
@@ -350,7 +366,7 @@ static move_t parse_uci_move(board_t *board, const char *s)
             if (promo == 'n' && flag != FLAG_PROMO_N)
                 continue;
         }
-        return moves[i];
+        return m;
     }
     return 0;
 }
@@ -385,7 +401,9 @@ void parse_position(board_t *board, const char *line)
     {
         move_t m = parse_uci_move(board, p);
         if (m)
+        {
             board_make_move(board, m);
+        }
         while (*p && *p != ' ' && *p != '\n' && *p != '\r')
             p++;
         while (*p == ' ')
