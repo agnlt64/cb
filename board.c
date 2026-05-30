@@ -543,6 +543,15 @@ void board_make_move(board_t* board, move_t move)
 #ifdef UCI_DEBUG
         assert(false && "unreachable");
 #else
+        // push dummy history entry so that unmake_move
+        // never corrupts the actual history
+        board->history[board->history_top++] = (board_history_t) {
+            .castling = board->castling,
+            .ep_square_idx = board->ep_square_idx,
+            .halfmove = board->halfmove,
+            .hash = board->hash
+        };
+        board_flip_turn(board);
         return;
 #endif
     }
