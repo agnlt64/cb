@@ -22,7 +22,7 @@ $(OBJ_DIR)/%.o: %.c $(HEAD) | $(OBJ_DIR)
 	$(CC) -c $< -o $@
 
 tests: tests.c $(OBJ)
-	$(CC) tests.c $(OBJ) -o $(UCI_TESTS)
+	$(CC) -DUCI_DEBUG tests.c $(OBJ) -o $(UCI_TESTS)
 
 debug: main.c $(OBJ)
 	$(CC) $(LDFLAGS) -DUCI_DEBUG main.c $(OBJ) -o $(UCI_DEBUG)
