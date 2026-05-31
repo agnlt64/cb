@@ -567,9 +567,13 @@ void uci_loop()
                 int time_left = board.turn == WHITE ? wtime : btime;
                 int inc = board.turn == WHITE ? winc : binc;
                 int move_overhead = 10; // 10ms
-                // divide by 50 when playing low time control games
-                int alloc_time = (int)fmax(time_left / 50 + inc / 2, time_left - move_overhead);
-                if (alloc_time == 0)
+                // soft target: how much we want to spend on this move
+                int soft = time_left / 50 + inc / 2;
+                // hard cap: never burn through the time left minus overhead,
+                // even if our soft target says otherwise (low time, etc.)
+                int hard = time_left - move_overhead;
+                int alloc_time = (int)fmin(soft, hard);
+                if (alloc_time <= 0)
                     alloc_time = 30000; // 30s by default
 
                 canceled = false;
