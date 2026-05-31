@@ -3,7 +3,7 @@ bin/
 .DS_Store
 testing/builds/*.bin
 testing/cutechess-cli
-testing/book/*.pgn
+testing/book/*
 testing/matches/*.pgn
 testing/matches/*.log
 testing/history.tsv
