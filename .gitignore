@@ -1,2 +1,9 @@
 bin/
-pgn/
+
+.DS_Store
+testing/builds/*.bin
+testing/cutechess-cli
+testing/book/*.pgn
+testing/matches/*.pgn
+testing/matches/*.log
+testing/history.tsv
