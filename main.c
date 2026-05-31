@@ -66,7 +66,18 @@ tt_entry_t tt[TT_SIZE];
 // volatile to make sure they don't get
 // optimized out by -O3
 volatile bool canceled = false;
-static volatile clock_t search_end;
+// wall-clock deadline in milliseconds since an arbitrary monotonic epoch.
+// MUST be wall-clock, not CPU time — UCI time controls are wall-clock and
+// concurrent matches share the CPU. clock() (CPU time) drifts behind wall
+// time by 10-30% under concurrency=4 and causes systematic timeouts.
+static volatile long long search_end_ms;
+
+static long long now_ms(void)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (long long)ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
+}
 
 typedef struct killer
 {
@@ -201,7 +212,7 @@ bool is_repetition(board_t *board)
 
 static void check_time()
 {
-    if (search_end != 0 && clock() >= search_end)
+    if (search_end_ms != 0 && now_ms() >= search_end_ms)
         canceled = true;
 }
 
@@ -577,7 +588,7 @@ void uci_loop()
                     alloc_time = 30000; // 30s by default
 
                 canceled = false;
-                search_end = clock() + (clock_t)(alloc_time * CLOCKS_PER_SEC / 1000);
+                search_end_ms = now_ms() + alloc_time;
 #ifdef UCI_DEBUG
                 printf("using %dms\n", alloc_time);
                 printf("black = %d + %d, white = %d + %d\n", btime, binc, wtime, winc);
