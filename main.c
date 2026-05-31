@@ -568,6 +568,19 @@ void uci_loop()
             {
                 board_perft(&board, perft, true);
             }
+
+            int depth = parse_int(line, "depth");
+            if (depth != 0)
+            {
+                canceled = false;
+                search_end_ms = 0;
+                int eval;
+                move_t best = search(&board, depth, 0, &eval);
+                printf("bestmove %s\n", move_to_uci(best));
+                fflush(stdout);
+                continue;
+            }
+
             else
             {
                 int btime = parse_int(line, "btime");

@@ -12,9 +12,9 @@ OUT="matches/$(basename $A)-vs-$(basename $B)-$(date +%Y%m%d-%H%M%S).pgn"
 ./cutechess-cli \
     -engine cmd="$A" name="$(basename $A .bin)" \
     -engine cmd="$B" name="$(basename $B .bin)" \
-    -each proto=uci tc="$TC" \
+    -each proto=uci tc=inf depth=6\
     -openings file=book/UHO_4060_v2.epd format=epd order=random \
-    -games "$GAMES" -rounds 1 -repeat \
+    -games 50 -rounds 1 -repeat \
     -concurrency 4 \
     -pgnout "$OUT" \
     -ratinginterval 20 \
