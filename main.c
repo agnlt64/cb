@@ -280,7 +280,7 @@ int negamax(board_t *board, int depth, int alpha, int beta, int ply)
 
     for (size_t i = 0; i < n; i++)
     {
-        // if (canceled) return alpha;
+        if (canceled) return alpha;
         move_t move = moves[i];
         board_make_move(board, move);
         int extension = get_extension(board, move);
@@ -566,7 +566,8 @@ void uci_loop()
 
                 int time_left = board.turn == WHITE ? wtime : btime;
                 int inc = board.turn == WHITE ? winc : binc;
-                int alloc_time = time_left / 30 + inc / 2;
+                // divide by 50 when playing low time control games
+                int alloc_time = time_left / 50 + inc / 2;
                 if (alloc_time == 0)
                     alloc_time = 30000; // 30s by default
 
@@ -670,11 +671,6 @@ void uci_loop()
 
 int main()
 {
-    /*
-     * fen 1R6/1P3p2/5k1K/4p3/1r4P1/8/8/8 b - - 0 1
-     * black to move, eval is 110 (position better for black)
-     */
-
     init_distances();
     uci_loop();
 
