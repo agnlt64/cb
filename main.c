@@ -566,8 +566,9 @@ void uci_loop()
 
                 int time_left = board.turn == WHITE ? wtime : btime;
                 int inc = board.turn == WHITE ? winc : binc;
+                int move_overhead = 10; // 10ms
                 // divide by 50 when playing low time control games
-                int alloc_time = time_left / 50 + inc / 2;
+                int alloc_time = (int)fmax(time_left / 50 + inc / 2, time_left - move_overhead);
                 if (alloc_time == 0)
                     alloc_time = 30000; // 30s by default
 
