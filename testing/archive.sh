@@ -2,10 +2,10 @@
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
-# if [[ -n "$(git status --porcelain)" ]]; then
-#     echo "❌ working tree dirty - commit before archiving"
-#     exit 1
-# fi
+if [[ -n "$(git status --porcelain)" ]]; then
+    echo "❌ working tree dirty - commit before archiving"
+    exit 1
+fi
 
 TAG="${1:?usage: archive.sh <tag>}"
 HASH=$(git rev-parse --short HEAD)
