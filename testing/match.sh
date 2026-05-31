@@ -13,7 +13,7 @@ OUT="matches/$(basename $A)-vs-$(basename $B)-$(date +%Y%m%d-%H%M%S).pgn"
     -engine cmd="$A" name="$(basename $A .bin)" \
     -engine cmd="$B" name="$(basename $B .bin)" \
     -each proto=uci tc="$TC" \
-    -openings file=book/8moves_v3.pgn format=pgn order=random \
+    -openings file=book/UHO_4060_v2.epd format=pgn order=random \
     -games "$GAMES" -rounds 1 -repeat \
     -concurrency 4 \
     -pgnout "$OUT" \
