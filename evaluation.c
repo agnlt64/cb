@@ -148,6 +148,12 @@ int evaluate(board_t* board)
     white_eval.material_score = white_material.material_score;
     black_eval.material_score = black_material.material_score;
 
+    if (white_material.num_bishops >= 2)
+        white_eval.material_score += 30;
+
+    if (black_material.num_bishops >= 2)
+        black_eval.material_score += 30;
+
     white_eval.piece_square_score = eval_piece_tables(board, WHITE, black_material.endgame_t);
     black_eval.piece_square_score = eval_piece_tables(board, BLACK, white_material.endgame_t);
 
