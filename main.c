@@ -25,7 +25,7 @@
 // debug, `grep -l "BUG\|HASH\|PARSE FAIL" /tmp/cb-dbg-*.log` localise
 // les crashes.
 #ifdef UCI_DEBUG
-static FILE *dbg_fp = NULL;
+static FILE* dbg_fp = NULL;
 
 static void dbg_init(void)
 {
@@ -42,14 +42,14 @@ static void dbg_init(void)
 
 #define DBG(...) do { dbg_init(); if (dbg_fp) fprintf(dbg_fp, __VA_ARGS__); } while(0)
 
-static void dbg_dump_board(board_t *b)
+static void dbg_dump_board(board_t* b)
 {
     dbg_init();
     if (!dbg_fp) return;
     for (int rank = 7; rank >= 0; rank--)
     {
         for (int file = 0; file < 8; file++)
-            fprintf(dbg_fp, "%c ", piece_string(b->squares[rank * 8 + file]));
+            fprintf(dbg_fp, "%c ", piece_string(b->squares[rank*  8 + file]));
         fprintf(dbg_fp, "\n");
     }
     fprintf(dbg_fp, "turn=%s castling=0x%x ep=%d halfmove=%d fullmove=%d hash=0x%llx\n",
@@ -76,7 +76,7 @@ static long long now_ms(void)
 {
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (long long)ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
+    return (long long)ts.tv_sec*  1000 + ts.tv_nsec / 1000000;
 }
 
 typedef struct killer
@@ -101,7 +101,7 @@ bool killer_contains(int depth, move_t move)
     return move == killers[depth].a || move == killers[depth].b;
 }
 
-void order_moves(board_t *board, move_t *moves, int n, int depth)
+void order_moves(board_t* board, move_t* moves, int n, int depth)
 {
     color_t opp = board->turn == WHITE ? BLACK : WHITE;
     int scores[256];
@@ -115,7 +115,7 @@ void order_moves(board_t *board, move_t *moves, int n, int depth)
 
         if (capture_piece_type != NO_PIECE)
         {
-            score_guess = 10 * piece_value(capture_piece_type) - piece_value(move_piece_type);
+            score_guess = 10*  piece_value(capture_piece_type) - piece_value(move_piece_type);
         }
         else
         {
@@ -163,7 +163,78 @@ void order_moves(board_t *board, move_t *moves, int n, int depth)
     }
 }
 
-int search_captures(board_t *board, int alpha, int beta)
+void order_moves_better(board_t* board, move_t* moves, int n, int depth, bool q_search)
+{
+    color_t opp = board->turn == WHITE ? BLACK : WHITE;
+    int scores[256];
+
+    for (int i = 0; i < n; i++)
+    {
+        move_t move = moves[i];
+        int score = 0;
+        int start_sq = MOVE_FROM(move);
+        int target_sq = MOVE_TO(move);
+
+        int move_piece = board->squares[start_sq];
+        int move_piece_type = piece_type(move_piece);
+        int captured_piece_type = piece_type(board->squares[target_sq]);
+        bool is_capture = MOVE_CAPTURED(move) != 0;
+        int flag = MOVE_FLAGS(move);
+        int value = piece_value(move_piece_type);
+
+        if (is_capture)
+        {
+            int capture_material_delta = piece_value(captured_piece_type) - value;
+            // todo: penalize if opp attacks with other material type
+            bool can_opp_recapture = can_pawn_attack(board, idx_to_square(target_sq), opp);
+            if (can_opp_recapture)
+                score += (capture_material_delta >= 0 ? 8000000 : 2000000) + capture_material_delta;
+            else
+                score += 8000000 + capture_material_delta;
+        }
+
+        if (move_piece_type == PAWN)
+        {
+            if (flag == FLAG_PROMO_Q && !is_capture)
+                score += 6000000;
+        }
+        else
+        {
+            int to_score = piece_square_value(move_piece, target_sq);
+            int from_score = piece_square_value(move_piece, start_sq);
+            score += to_score - from_score;
+
+            // todo: penalize if opp attacks with other material type
+            if (can_pawn_attack(board, idx_to_square(target_sq), opp))
+                score -= 50;
+        }
+
+        if (!is_capture)
+        {
+            bool is_killer = !q_search && depth <= MAX_DEPTH && killer_contains(depth, move);
+            score += is_killer ? 4000000 : 0;
+        }
+
+        scores[i] = score;
+    }
+
+    for (int i = 1; i < n; i++)
+    {
+        move_t m = moves[i];
+        int s = scores[i];
+        int j = i - 1;
+        while (j >= 0 && scores[j] < s)
+        {
+            moves[j + 1] = moves[j];
+            scores[j + 1] = scores[j];
+            j--;
+        }
+        moves[j + 1] = m;
+        scores[j + 1] = s;
+    }
+}
+
+int search_captures(board_t* board, int alpha, int beta)
 {
     total_positions++;
     int eval = evaluate(board);
@@ -197,7 +268,7 @@ int search_captures(board_t *board, int alpha, int beta)
     return alpha;
 }
 
-bool is_repetition(board_t *board)
+bool is_repetition(board_t* board)
 {
     int limit = board->history_top - board->halfmove;
     if (limit < 0)
@@ -216,7 +287,7 @@ static void check_time()
         canceled = true;
 }
 
-int get_extension(board_t *board, move_t move)
+int get_extension(board_t* board, move_t move)
 {
     int extension = 0;
     int to = MOVE_TO(move);
@@ -228,7 +299,7 @@ int get_extension(board_t *board, move_t move)
     return extension;
 }
 
-int negamax(board_t *board, int depth, int alpha, int beta, int ply)
+int negamax(board_t* board, int depth, int alpha, int beta, int ply)
 {
     total_positions++;
 
@@ -249,7 +320,7 @@ int negamax(board_t *board, int depth, int alpha, int beta, int ply)
     if (board->halfmove >= 100 || is_repetition(board))
         return 0;
 
-    tt_entry_t *entry = tt_get(tt, board->hash);
+    tt_entry_t* entry = tt_get(tt, board->hash);
     if (entry && entry->depth >= depth)
     {
         int e = entry->eval;
@@ -263,7 +334,8 @@ int negamax(board_t *board, int depth, int alpha, int beta, int ply)
     if (depth == 0)
         return search_captures(board, alpha, beta);
 
-    order_moves(board, moves, n, depth);
+    // order_moves(board, moves, n, depth);
+    order_moves_better(board, moves, n, depth, false);
 
     // null move pruning
     if (depth >= 3 && !board_in_check(board))
@@ -334,7 +406,7 @@ int negamax(board_t *board, int depth, int alpha, int beta, int ply)
     return alpha;
 }
 
-move_t search(board_t *board, int depth, move_t pre_best_move, int *out_eval)
+move_t search(board_t* board, int depth, move_t pre_best_move, int* out_eval)
 {
 #ifdef UCI_DEBUG
     printf("pre best move = %s\n", move_to_uci(pre_best_move));
@@ -368,11 +440,11 @@ move_t search(board_t *board, int depth, move_t pre_best_move, int *out_eval)
     fprintf(stderr, "depth %d -> best %s eval=%d\n", depth, move_to_uci(best), best_eval);
 #endif
 
-    *out_eval = best_eval;
+   * out_eval = best_eval;
     return best;
 }
 
-move_t iterative_deepening(board_t *board)
+move_t iterative_deepening(board_t* board)
 {
     move_t best = 0;
     for (int depth = 1; depth < 256; depth++)
@@ -390,13 +462,13 @@ move_t iterative_deepening(board_t *board)
     return best;
 }
 
-static move_t parse_uci_move(board_t *board, const char *s)
+static move_t parse_uci_move(board_t* board, const char* s)
 {
 #ifdef UCI_DEBUG
     assert(board->hash == zobrist_from_board(board) && "hash drift detected");
 #endif
-    int from = (s[1] - '1') * 8 + (s[0] - 'a');
-    int to = (s[3] - '1') * 8 + (s[2] - 'a');
+    int from = (s[1] - '1')*  8 + (s[0] - 'a');
+    int to = (s[3] - '1')*  8 + (s[2] - 'a');
     char promo = (s[4] && s[4] != ' ' && s[4] != '\n' && s[4] != '\r') ? s[4] : 0;
 
     // e1h1 (and friends) is valid UCI rook-target castle form. We
@@ -445,9 +517,9 @@ static move_t parse_uci_move(board_t *board, const char *s)
     return 0;
 }
 
-void parse_position(board_t *board, const char *line)
+void parse_position(board_t* board, const char* line)
 {
-    const char *p = line + 9; // skip "position "
+    const char* p = line + 9; // skip "position "
 
     if (strncmp(p, "startpos", 8) == 0)
     {
@@ -486,7 +558,7 @@ void parse_position(board_t *board, const char *line)
         return;
     p += 6; // skip "moves "
 
-    while (*p && *p != '\n' && *p != '\r')
+    while (*p &&* p != '\n' &&* p != '\r')
     {
         move_t m = parse_uci_move(board, p);
         if (m)
@@ -515,22 +587,22 @@ void parse_position(board_t *board, const char *line)
             abort();
         }
 #endif
-        while (*p && *p != ' ' && *p != '\n' && *p != '\r')
+        while (*p &&* p != ' ' &&* p != '\n' &&* p != '\r')
             p++;
         while (*p == ' ')
             p++;
     }
 }
 
-int parse_int(const char *line, const char *side)
+int parse_int(const char* line, const char* side)
 {
-    const char *p = strstr(line, side);
+    const char* p = strstr(line, side);
     if (!p)
         return 0;
     p += strlen(side) + 1;
     int nb = 0;
     while (isdigit(*p))
-        nb = 10 * nb + (*p++ - '0');
+        nb = 10*  nb + (*p++ - '0');
     return nb;
 }
 
@@ -661,7 +733,7 @@ void uci_loop()
                 //    suffix, wrong castle form, etc.)
                 {
                     char uci_buf[8];
-                    char *uci_str = move_to_uci(best);
+                    char* uci_str = move_to_uci(best);
                     strncpy(uci_buf, uci_str, sizeof(uci_buf) - 1);
                     uci_buf[sizeof(uci_buf) - 1] = '\0';
 
