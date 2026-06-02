@@ -172,7 +172,7 @@ void order_moves(board_t* board, move_t* moves, int n, int depth, bool q_search)
     }
 }
 
-int search_captures(board_t* board, int alpha, int beta)
+int quiescence_search(board_t* board, int alpha, int beta)
 {
     total_positions++;
     int eval = evaluate(board);
@@ -194,7 +194,7 @@ int search_captures(board_t* board, int alpha, int beta)
             return alpha;
         move_t move = capture_moves[i];
         board_make_move(board, move);
-        eval = -search_captures(board, -beta, -alpha);
+        eval = -quiescence_search(board, -beta, -alpha);
         board_unmake_move(board, move);
 
         if (eval >= beta)
@@ -270,7 +270,7 @@ int negamax(board_t* board, int depth, int alpha, int beta, int ply)
     }
 
     if (depth == 0)
-        return search_captures(board, alpha, beta);
+        return quiescence_search(board, alpha, beta);
 
     order_moves(board, moves, n, depth, false);
 
