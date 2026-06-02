@@ -54,3 +54,13 @@ All tests were executed on my M5 Macbook Pro (macOS Tahoe 26.5), unless other ha
 - concurrency: 4 games at a time
 
 **note**: as we can see, the bot is perfectly simmetrical. previously observed Elo biases were just noise.
+
+## Baseline 2026-06-01
+
+- commit `d521caf`
+- TC: 10+0.1
+- book: `UHO_4060_v2.epd`
+- 200 games self-play
+- result: Elo difference: 0.0 +/- 19.3, LOS: 50.0 %, DrawRatio: 84.0 %
+- timeout: 7 total
+- concurrency: 4 games at a time
