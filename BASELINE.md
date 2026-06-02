@@ -64,3 +64,13 @@ All tests were executed on my M5 Macbook Pro (macOS Tahoe 26.5), unless other ha
 - result: Elo difference: 0.0 +/- 19.3, LOS: 50.0 %, DrawRatio: 84.0 %
 - timeout: 7 total
 - concurrency: 4 games at a time
+
+## Baseline 2026-06-03
+
+- commit `8e064c7`
+- TC: 10+0.1
+- book: `UHO_4060_v2.epd`
+- 200 games self-play
+- result: Elo difference: -1.7 +/- 21.8, LOS: 43.8 %, DrawRatio: 79.5 %
+- timeout: 2 total
+- concurrency: 4 games at a time
