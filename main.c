@@ -101,69 +101,7 @@ bool killer_contains(int depth, move_t move)
     return move == killers[depth].a || move == killers[depth].b;
 }
 
-void order_moves(board_t* board, move_t* moves, int n, int depth)
-{
-    color_t opp = board->turn == WHITE ? BLACK : WHITE;
-    int scores[256];
-
-    for (int i = 0; i < n; i++)
-    {
-        move_t move = moves[i];
-        int score_guess = 0;
-        piece_type_t move_piece_type = piece_type(board->squares[MOVE_FROM(move)]);
-        piece_type_t capture_piece_type = MOVE_CAPTURED(move);
-
-        if (capture_piece_type != NO_PIECE)
-        {
-            score_guess = 10*  piece_value(capture_piece_type) - piece_value(move_piece_type);
-        }
-        else
-        {
-            // detect killer move
-            score_guess += (depth >= 0 && depth < MAX_DEPTH && killer_contains(depth, move)) ? 4000000 : 0;
-        }
-
-        switch (MOVE_FLAGS(move))
-        {
-        case FLAG_PROMO_B:
-            score_guess += piece_value(BISHOP);
-            break;
-        case FLAG_PROMO_N:
-            score_guess += piece_value(KNIGHT);
-            break;
-        case FLAG_PROMO_R:
-            score_guess += piece_value(ROOK);
-            break;
-        case FLAG_PROMO_Q:
-            score_guess += piece_value(QUEEN);
-            break;
-        default:
-            break;
-        }
-
-        if (can_pawn_attack(board, idx_to_square(MOVE_TO(move)), opp))
-            score_guess -= piece_value(move_piece_type);
-
-        scores[i] = score_guess;
-    }
-
-    for (int i = 1; i < n; i++)
-    {
-        move_t m = moves[i];
-        int s = scores[i];
-        int j = i - 1;
-        while (j >= 0 && scores[j] < s)
-        {
-            moves[j + 1] = moves[j];
-            scores[j + 1] = scores[j];
-            j--;
-        }
-        moves[j + 1] = m;
-        scores[j + 1] = s;
-    }
-}
-
-void order_moves_better(board_t* board, move_t* moves, int n, int depth, bool q_search)
+void order_moves(board_t* board, move_t* moves, int n, int depth, bool q_search)
 {
     color_t opp = board->turn == WHITE ? BLACK : WHITE;
     int scores[256];
@@ -211,7 +149,7 @@ void order_moves_better(board_t* board, move_t* moves, int n, int depth, bool q_
 
         if (!is_capture)
         {
-            bool is_killer = !q_search && depth <= MAX_DEPTH && killer_contains(depth, move);
+            bool is_killer = !q_search && depth < MAX_DEPTH && killer_contains(depth, move);
             score += is_killer ? 4000000 : 0;
         }
 
@@ -248,7 +186,7 @@ int search_captures(board_t* board, int alpha, int beta)
 
     move_t capture_moves[256];
     int n = gen_capture_moves(board, capture_moves);
-    order_moves(board, capture_moves, n, -1);
+    order_moves(board, capture_moves, n, -1, false);
 
     for (size_t i = 0; i < n; i++)
     {
@@ -334,8 +272,7 @@ int negamax(board_t* board, int depth, int alpha, int beta, int ply)
     if (depth == 0)
         return search_captures(board, alpha, beta);
 
-    // order_moves(board, moves, n, depth);
-    order_moves_better(board, moves, n, depth, false);
+    order_moves(board, moves, n, depth, false);
 
     // null move pruning
     if (depth >= 3 && !board_in_check(board))
@@ -451,13 +388,20 @@ move_t iterative_deepening(board_t* board)
     {
         int eval;
         move_t best_move_curr = search(board, depth, best, &eval);
-        // always commit the latest move we got, even if we were canceled
-        // mid-iteration — otherwise a cancel at depth=1 makes us return 0
-        // which would print "bestmove a1a1" and lose on illegal move
-        if (best_move_curr != 0)
-            best = best_move_curr;
         if (canceled)
+        {
+            // partial result of an interrupted depth is unreliable: when
+            // negamax bails on `canceled`, it returns its raw alpha which
+            // bubbles up as bogus +/-200000 evals at the root and can
+            // overwrite a legitimate best move from the previous depth.
+            // only fall back on the partial result if we have nothing else
+            // (eg. canceled during depth 1 with a stupidly tight budget),
+            // to avoid printing "bestmove a1a1".
+            if (best == 0)
+                best = best_move_curr;
             break;
+        }
+        best = best_move_curr;
     }
     return best;
 }
@@ -639,6 +583,7 @@ void uci_loop()
             if (perft != 0)
             {
                 board_perft(&board, perft, true);
+                continue;
             }
 
             int depth = parse_int(line, "depth");
