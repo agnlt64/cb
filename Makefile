@@ -1,7 +1,7 @@
 CC=gcc
 LDFLAGS=-lm
-SRC=board.c piece.c square.c move.c zobrist.c tt.c mt19937-64.c evaluation.c pieces_tables.c precomputed_move_data.c
-HEAD=board.h piece.h square.h move.h zobrist.h tt.h mt19937-64.h evaluation.h pieces_tables.h precomputed_move_data.h
+SRC=board.c piece.c square.c move.c zobrist.c tt.c mt19937-64.c evaluation.c pieces_tables.c precomputed_move_data.c precomputed_eval_data.c
+HEAD=board.h piece.h square.h move.h zobrist.h tt.h mt19937-64.h evaluation.h pieces_tables.h precomputed_move_data.h precomputed_eval_data.h
 
 OBJ_DIR=bin/obj
 OBJ=$(patsubst %.c, $(OBJ_DIR)/%.o, $(SRC))
@@ -25,7 +25,7 @@ tests: tests.c $(OBJ)
 	$(CC) -DUCI_DEBUG tests.c $(OBJ) -o $(UCI_TESTS)
 
 debug: main.c $(OBJ)
-	$(CC) $(LDFLAGS) -DUCI_DEBUG main.c $(OBJ) -o $(UCI_DEBUG)
+	$(CC) $(LDFLAGS) -ggdb -DUCI_DEBUG main.c $(OBJ) -o $(UCI_DEBUG)
 
 release: main.c $(OBJ)
 	$(CC) $(LDFLAGS) -O3 main.c $(OBJ) -o $(UCI_RELEASE)
