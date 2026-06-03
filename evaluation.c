@@ -6,6 +6,7 @@
 #include "piece.h"
 #include "pieces_tables.h"
 #include "precomputed_move_data.h"
+#include "precomputed_eval_data.h"
 
 // https://github.com/SebLague/Chess-Coding-Adventure/blob/Chess-V2-UCI/Chess-Coding-Adventure/src/Core/Evaluation/Evaluation.cs
 
@@ -71,6 +72,81 @@ int mop_up(board_t* board, color_t turn, material_info_t my_material, material_i
         return (int)(score * enemy_material.endgame_t);
     }
     return 0;
+}
+
+static bool file_has_pawn(board_t* board, int file, color_t color)
+{
+    for (int rank = 0; rank < 8; rank++)
+    {
+        piece_t piece = board->squares[8 * rank + file];
+        if (piece_type(piece) == PAWN && piece_color(piece) == color)
+            return true;
+    }
+    return false;
+}
+
+int king_pawn_shield(board_t* board, color_t turn, material_info_t enemy_material, int enemy_piece_square_score)
+{
+    if (enemy_material.endgame_t >= 1)
+        return 0;
+
+    static int king_pawn_shield_scores[6] = { 4, 7, 4, 3, 6, 3 };
+
+    int penalty = 0;
+    piece_t friendly_pawn = PAWN | turn;
+    int king_sq = FIND_KING(board, turn);
+    int king_file = idx_to_square(king_sq).file;
+    int uncastled_penalty = 0;
+
+    if (king_file <= 2 || king_file >= 5)
+    {
+        pawn_shield_t shield = turn == WHITE ? pawn_shield_squares_white[king_sq] : pawn_shield_squares_black[king_sq];
+
+        for (int i = 0; i < shield.length / 2; i++)
+        {
+            int shield_sq_idx = shield.squares[i];
+            // compare raw piece value (PAWN | color), not just piece_type
+            if (board->squares[shield_sq_idx] != friendly_pawn)
+            {
+                if (shield.length > 3 && board->squares[shield.squares[i + 3]] == friendly_pawn)
+                    penalty += king_pawn_shield_scores[i + 3];
+                else
+                    penalty += king_pawn_shield_scores[i];
+            }
+        }
+        penalty *= penalty;
+    }
+    else
+    {
+        float enemy_dev_score = CLAMP((enemy_piece_square_score + 10) / 130.0f, 0, 1);
+        uncastled_penalty = (int)(50 * enemy_dev_score);
+    }
+
+    int open_file_vs_king = 0;
+    if (enemy_material.num_rooks > 1 || (enemy_material.num_rooks > 0 && enemy_material.num_queens > 0))
+    {
+        int clamped_king_file = CLAMP(king_file, 1, 6);
+        color_t opp = turn == WHITE ? BLACK : WHITE;
+
+        for (int attack_file = clamped_king_file; attack_file <= clamped_king_file + 1; attack_file++)
+        {
+            bool is_king_file = attack_file == king_file;
+
+            if (!file_has_pawn(board, attack_file, opp))
+            {
+                open_file_vs_king += is_king_file ? 25 : 15;
+                if (!file_has_pawn(board, attack_file, turn))
+                    open_file_vs_king += is_king_file ? 15 : 10;
+            }
+        }
+    }
+
+    float pawn_shield_w = 1 - enemy_material.endgame_t;
+    // if the enemy has no queen, threat against our king is much lower
+    if (enemy_material.num_queens == 0)
+        pawn_shield_w *= 0.6f;
+
+    return (int)((-penalty - uncastled_penalty - open_file_vs_king) * pawn_shield_w);
 }
 
 int eval_piece_tables(board_t* board, color_t turn, float endgame_t)
@@ -159,6 +235,9 @@ int evaluate(board_t* board)
 
     white_eval.mop_up_score = mop_up(board, WHITE, white_material, black_material);
     black_eval.mop_up_score = mop_up(board, BLACK, black_material, white_material);
+
+    white_eval.pawn_shield_score = king_pawn_shield(board, WHITE, black_material, black_eval.piece_square_score);
+    black_eval.pawn_shield_score = king_pawn_shield(board, BLACK, white_material, white_eval.piece_square_score);
 
     int sign = board->turn == WHITE ? 1 : -1;
     int eval = evaluation_data_sum(&white_eval) - evaluation_data_sum(&black_eval);
