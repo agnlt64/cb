@@ -344,30 +344,29 @@ int negamax(board_t *board, int depth, int alpha, int beta, int ply)
 
         int eval;
         int extension = get_extension(board, move);
-
-        // PVS
-        if (i == 0)
-            eval = -negamax(board, depth - 1 + extension, -beta, -alpha, ply + 1);
-        else
-        {
-            eval = -negamax(board, depth - 1 + extension, -alpha - 1, -alpha, ply + 1);
-            if (eval > alpha && beta - alpha > 1)
-                eval = -negamax(board, depth - 1 + extension, -beta, -alpha, ply + 1);
-        }
+        int new_depth = depth - 1 + extension;
 
         // late move reduction
-        bool is_late = depth >= 3 && i >= 3 && extension == 0 &&
-                       MOVE_FLAGS(move) != FLAG_CAPTURE && MOVE_FLAGS(move) != FLAG_EP;
+        bool is_late = depth >= 3 && i >= 3 && extension == 0 && MOVE_FLAGS(move) != FLAG_CAPTURE && MOVE_FLAGS(move) != FLAG_EP;
+        int reduction = is_late ? 1 : 0;
 
-        if (is_late)
+        if (i == 0)
         {
-            eval = -negamax(board, depth - 2, -alpha - 1, -alpha, ply + 1);
-            if (eval > alpha)
-                eval = -negamax(board, depth - 1, -beta, -alpha, ply + 1);
+            // PVS
+            eval = -negamax(board, new_depth, -beta, -alpha, ply + 1);
         }
         else
         {
-            eval = -negamax(board, depth - 1 + extension, -beta, -alpha, ply + 1);
+            // null window
+            eval = -negamax(board, new_depth - reduction, -alpha - 1, -alpha, ply + 1);
+
+            // null window again to confirm fail-high
+            if (reduction > 0 && eval > alpha)
+                eval = -negamax(board, new_depth, -alpha - 1, -alpha, ply + 1);
+
+            // if null window fails in a PV windos, full search
+            if (eval > alpha && eval < beta)
+                eval = -negamax(board, new_depth, -beta, -alpha, ply + 1);
         }
 
         board_unmake_move(board, move);
