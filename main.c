@@ -285,21 +285,25 @@ int negamax(board_t *board, int depth, int alpha, int beta, int ply)
 
     tt_entry_t *entry = tt_get(tt, board->hash);
     move_t tt_move = 0;
-    if (entry && entry->depth >= depth)
+    if (entry)
     {
-        int e = entry->eval;
-        if (e >= MATE_SCORE - 1000)
-            e -= ply;
-        if (e <= -MATE_SCORE + 1000)
-            e += ply;
-
-        if (entry->flag == TT_EXACT)
-            return e;
-        if (entry->flag == TT_LOWER && e >= beta)
-            return e;
-        if (entry->flag == TT_UPPER && e <= alpha)
-            return e;
         tt_move = entry->best_move;
+
+        if (entry->depth >= depth)
+        {
+            int e = entry->eval;
+            if (e >= MATE_SCORE - 1000)
+                e -= ply;
+            if (e <= -MATE_SCORE + 1000)
+                e += ply;
+    
+            if (entry->flag == TT_EXACT)
+                return e;
+            if (entry->flag == TT_LOWER && e >= beta)
+                return e;
+            if (entry->flag == TT_UPPER && e <= alpha)
+                return e;
+        }
     }
 
     if (depth == 0)
@@ -337,10 +341,21 @@ int negamax(board_t *board, int depth, int alpha, int beta, int ply)
 
         move_t move = moves[i];
         board_make_move(board, move);
+
+        int eval;
         int extension = get_extension(board, move);
 
+        // PVS
+        if (i == 0)
+            eval = -negamax(board, depth - 1 + extension, -beta, -alpha, ply + 1);
+        else
+        {
+            eval = -negamax(board, depth - 1 + extension, -alpha - 1, -alpha, ply + 1);
+            if (eval > alpha && beta - alpha > 1)
+                eval = -negamax(board, depth - 1 + extension, -beta, -alpha, ply + 1);
+        }
+
         // late move reduction
-        int eval;
         bool is_late = depth >= 3 && i >= 3 && extension == 0 &&
                        MOVE_FLAGS(move) != FLAG_CAPTURE && MOVE_FLAGS(move) != FLAG_EP;
 
@@ -638,6 +653,7 @@ void uci_loop()
                 search_end_ms = 0;
                 int eval;
                 move_t best = search(&board, depth, 0, &eval);
+                printf("total positions = %d\n", total_positions); // before fix: 35783954, after fix: 36443297
                 printf("bestmove %s\n", move_to_uci(best));
                 fflush(stdout);
                 continue;
