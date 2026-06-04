@@ -219,6 +219,9 @@ int quiescence_search(board_t *board, int alpha, int beta)
         eval = -quiescence_search(board, -beta, -alpha);
         board_unmake_move(board, move);
 
+        if (canceled)
+            return alpha;
+
         if (eval >= beta)
             return beta;
 
@@ -324,6 +327,8 @@ int negamax(board_t *board, int depth, int alpha, int beta, int ply)
 
         int eval = -negamax(board, depth - 3, -beta, -beta + 1, ply + 1);
 
+        if (canceled) return alpha;
+
         board_flip_turn(board);
         board->hash ^= board->zobrist.turn;
 
@@ -370,6 +375,8 @@ int negamax(board_t *board, int depth, int alpha, int beta, int ply)
         }
 
         board_unmake_move(board, move);
+
+        if (canceled) return alpha;
 
         // killer move detection
         if (eval >= beta)
