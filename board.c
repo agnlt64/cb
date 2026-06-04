@@ -2,6 +2,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <assert.h>
+#include <limits.h>
 
 #include "board.h"
 #include "squares.h"
@@ -920,4 +921,79 @@ bool can_orth_attack(board_t *board, square_t sq, color_t color)
         }
     }
     return false;
+}
+
+
+void order_moves(board_t* board, move_t* moves, int moves_size, killer_t* killers, int depth, bool q_search, move_t pv_move)
+{
+    color_t opp = board->turn == WHITE ? BLACK : WHITE;
+    int scores[256];
+
+    for (int i = 0; i < moves_size; i++)
+    {
+        move_t move = moves[i];
+        if (move == pv_move)
+        {
+            scores[i] = INT_MAX;
+            continue;
+        }
+        int score = 0;
+        int start_sq = MOVE_FROM(move);
+        int target_sq = MOVE_TO(move);
+
+        int move_piece = board->squares[start_sq];
+        int move_piece_type = piece_type(move_piece);
+        int captured_piece_type = piece_type(board->squares[target_sq]);
+        bool is_capture = MOVE_CAPTURED(move) != 0;
+        int flag = MOVE_FLAGS(move);
+        int value = piece_value(move_piece_type);
+
+        if (is_capture)
+        {
+            int capture_material_delta = piece_value(captured_piece_type) - value;
+            bool can_opp_recapture = is_square_attacked(board, idx_to_square(target_sq), opp);
+            if (can_opp_recapture)
+                score += (capture_material_delta >= 0 ? 8000000 : 2000000) + capture_material_delta;
+            else
+                score += 8000000 + capture_material_delta;
+        }
+
+        if (move_piece_type == PAWN)
+        {
+            if (flag == FLAG_PROMO_Q && !is_capture)
+                score += 6000000;
+        }
+        else
+        {
+            int to_score = piece_square_value(move_piece, target_sq);
+            int from_score = piece_square_value(move_piece, start_sq);
+            score += to_score - from_score;
+
+            if (is_square_attacked(board, idx_to_square(target_sq), opp))
+                score -= 50;
+        }
+
+        if (!is_capture)
+        {
+            bool is_killer = !q_search && depth < MAX_DEPTH && killer_contains(killers, depth, move);
+            score += is_killer ? 4000000 : 0;
+        }
+
+        scores[i] = score;
+    }
+
+    for (int i = 1; i < moves_size; i++)
+    {
+        move_t m = moves[i];
+        int s = scores[i];
+        int j = i - 1;
+        while (j >= 0 && scores[j] < s)
+        {
+            moves[j + 1] = moves[j];
+            scores[j + 1] = scores[j];
+            j--;
+        }
+        moves[j + 1] = m;
+        scores[j + 1] = s;
+    }
 }

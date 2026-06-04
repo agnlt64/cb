@@ -6,11 +6,14 @@
 #include "move.h"
 #include "square.h"
 #include "zobrist.h"
+#include "killer.h"
 
 #define DEFAULT_FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
 #define RANKS 8
 #define FILES 8
+
+#define MAX_DEPTH 20
 
 #define COLOR_IDX(color) ((color) == WHITE ? 0 : 1)
 
@@ -68,3 +71,5 @@ bool can_diag_attack(board_t* board, square_t sq, color_t color);
 bool can_orth_attack(board_t* board, square_t sq, color_t color);
 
 uint64_t zobrist_from_board(board_t* board);
+
+void order_moves(board_t* board, move_t* moves, int moves_size, killer_t* killers, int depth, bool q_search, move_t pv_move);
