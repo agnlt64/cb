@@ -3,6 +3,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <time.h>
+#include <limits.h>
 
 #ifdef UCI_DEBUG
 #include <assert.h>
@@ -117,7 +118,7 @@ bool killer_contains(int depth, move_t move)
     return move == killers[depth].a || move == killers[depth].b;
 }
 
-void order_moves(board_t *board, move_t *moves, int n, int depth, bool q_search)
+void order_moves(board_t *board, move_t *moves, int n, int depth, bool q_search, move_t pv_move)
 {
     color_t opp = board->turn == WHITE ? BLACK : WHITE;
     int scores[256];
@@ -125,6 +126,11 @@ void order_moves(board_t *board, move_t *moves, int n, int depth, bool q_search)
     for (int i = 0; i < n; i++)
     {
         move_t move = moves[i];
+        if (move == pv_move)
+        {
+            scores[i] = INT_MAX;
+            continue;
+        }
         int score = 0;
         int start_sq = MOVE_FROM(move);
         int target_sq = MOVE_TO(move);
@@ -202,7 +208,7 @@ int quiescence_search(board_t *board, int alpha, int beta)
 
     move_t capture_moves[256];
     int n = gen_capture_moves(board, capture_moves);
-    order_moves(board, capture_moves, n, -1, false);
+    order_moves(board, capture_moves, n, -1, false, 0);
 
     for (size_t i = 0; i < n; i++)
     {
@@ -299,7 +305,7 @@ int negamax(board_t *board, int depth, int alpha, int beta, int ply)
     if (depth == 0)
         return quiescence_search(board, alpha, beta);
 
-    order_moves(board, moves, n, depth, false);
+    order_moves(board, moves, n, depth, false, tt_move);
 
     // null move pruning
     if (depth >= 3 && !board_in_check(board))
