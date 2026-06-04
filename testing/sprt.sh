@@ -6,7 +6,7 @@ B="${2:?}"
 TC="${3:-10+0.1}"
 LOG="matches/$(basename $A)-vs-$(basename $B)-$(date +%Y%m%d-%H%M%S).log"
 
-cutechess-cli \
+./cutechess-cli \
     -engine cmd="$A" name="A" \
     -engine cmd="$B" name="B" \
     -each proto=uci tc="$TC" \
