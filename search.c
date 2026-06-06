@@ -8,7 +8,7 @@
 #include "evaluation.h"
 #include "precomputed_eval_data.h"
 
-#define MAX_HISTORY 64
+#define MAX_HISTORY 16384
 
 void search_ctx_init(search_ctx_t* ctx)
 {
