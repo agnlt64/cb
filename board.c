@@ -924,7 +924,7 @@ bool can_orth_attack(board_t *board, square_t sq, color_t color)
 }
 
 
-void order_moves(board_t* board, move_t* moves, int moves_size, killer_t* killers, int depth, bool q_search, move_t pv_move)
+void order_moves(board_t* board, move_t* moves, int moves_size, killer_t* killers, int depth, bool q_search, move_t pv_move, int history[64][64])
 {
     color_t opp = board->turn == WHITE ? BLACK : WHITE;
     int scores[256];
@@ -976,7 +976,10 @@ void order_moves(board_t* board, move_t* moves, int moves_size, killer_t* killer
         if (!is_capture)
         {
             bool is_killer = !q_search && depth < MAX_DEPTH && killer_contains(killers, depth, move);
-            score += is_killer ? 4000000 : 0;
+            if (is_killer)
+                score += 4000000;
+            else if (history)
+                score += history[start_sq][target_sq];
         }
 
         scores[i] = score;

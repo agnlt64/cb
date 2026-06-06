@@ -6,6 +6,9 @@
 #include "search.h"
 #include "board.h"
 #include "evaluation.h"
+#include "precomputed_eval_data.h"
+
+#define MAX_HISTORY 64
 
 void search_ctx_init(search_ctx_t* ctx)
 {
@@ -46,7 +49,7 @@ int quiescence_search(search_ctx_t* ctx, int alpha, int beta)
 
     move_t capture_moves[256];
     int n = gen_capture_moves(&ctx->board, capture_moves);
-    order_moves(&ctx->board, capture_moves, n, ctx->killers, -1, false, 0);
+    order_moves(&ctx->board, capture_moves, n, ctx->killers, -1, false, 0, NULL);
 
     for (size_t i = 0; i < n; i++)
     {
@@ -144,7 +147,7 @@ int negamax(search_ctx_t* ctx, int depth, int alpha, int beta, int ply)
     if (depth == 0)
         return quiescence_search(ctx, alpha, beta);
 
-    order_moves(&ctx->board, moves, n, ctx->killers, depth, false, tt_move);
+    order_moves(&ctx->board, moves, n, ctx->killers, depth, false, tt_move, ctx->history);
 
     // null move pruning
     if (depth >= 3 && !board_in_check(&ctx->board))
@@ -214,11 +217,21 @@ int negamax(search_ctx_t* ctx, int depth, int alpha, int beta, int ply)
 
         if (ctx->canceled) return alpha;
 
-        // killer move detection
         if (eval >= beta)
         {
+            // killer move detection
             if (depth < MAX_DEPTH && MOVE_FLAGS(move) != FLAG_CAPTURE && MOVE_FLAGS(move) != FLAG_EP)
                 add_killer(ctx->killers, depth, move);
+
+            // history heuristics
+            if (MOVE_FLAGS(move) != FLAG_CAPTURE)
+            {
+                int bonus = depth * depth;
+                int clamped_bonus = CLAMP(bonus, -MAX_HISTORY, MAX_HISTORY);
+                int from = MOVE_FROM(move);
+                int to = MOVE_TO(move);
+                ctx->history[from][to] += clamped_bonus - ctx->history[from][to] * abs(clamped_bonus) / MAX_HISTORY;
+            }
 
             int stored = beta;
             if (stored >= MATE_SCORE - 1000)  stored += ply;
@@ -274,7 +287,7 @@ int root_search(search_ctx_t* ctx, int depth, int alpha, int beta, move_t* best_
     tt_entry_t* entry = tt_get(ctx->tt, ctx->board.hash);
     move_t tt_move = entry ? entry->best_move : 0;
 
-    order_moves(&ctx->board, moves, n, ctx->killers, depth, false, tt_move);
+    order_moves(&ctx->board, moves, n, ctx->killers, depth, false, tt_move, ctx->history);
 
     int original_alpha = alpha;
     move_t best_move = moves[0];

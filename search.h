@@ -11,6 +11,7 @@ typedef struct search_ctx {
     board_t board;
     tt_entry_t* tt;
     killer_t killers[MAX_DEPTH];
+    int history[64][64];
     
     int total_positions;
 

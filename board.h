@@ -72,4 +72,4 @@ bool can_orth_attack(board_t* board, square_t sq, color_t color);
 
 uint64_t zobrist_from_board(board_t* board);
 
-void order_moves(board_t* board, move_t* moves, int moves_size, killer_t* killers, int depth, bool q_search, move_t pv_move);
+void order_moves(board_t* board, move_t* moves, int moves_size, killer_t* killers, int depth, bool q_search, move_t pv_move, int history[64][64]);
