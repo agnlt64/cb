@@ -147,6 +147,14 @@ int negamax(search_ctx_t* ctx, int depth, int alpha, int beta, int ply)
     if (depth == 0)
         return quiescence_search(ctx, alpha, beta);
 
+    // reverse futility pruning
+    if (depth <= 6 && !board_in_check(&ctx->board))
+    {
+        int static_eval = evaluate(&ctx->board);
+        if (static_eval - 150 * depth >= beta)
+            return static_eval;
+    }
+
     order_moves(&ctx->board, moves, n, ctx->killers, depth, false, tt_move, ctx->history);
 
     // null move pruning
