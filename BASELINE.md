@@ -3,6 +3,18 @@ All tests were executed on my M5 Macbook Pro (macOS Tahoe 26.5), unless other ha
 
 ## Baseline 2026-06-07
 
+- commit `88b9ec5`
+- TC: 10+0.1
+- book: `UHO_4060_v2.epd`
+- 200 games vs `cb-v11-root-search-fcc66c5`
+- result: Elo difference: 29.6 +/- 38.5, LOS: 93.4 %, DrawRatio: 36.5 %
+- timeout: 0 total
+- concurrency: 4 games at a time
+
+**note**: i ran the match against v11 (`fcc66c5`) to test all of the small improvements at once against a correct baseline. i tested history heuristic and reverse futility pruning against root search, which was a huge improvement already (+334 Elo vs previous version).
+
+## Baseline 2026-06-07
+
 - commit `667f359`
 - TC: 10+0.1
 - book: `UHO_4060_v2.epd`
