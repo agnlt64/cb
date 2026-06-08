@@ -149,6 +149,62 @@ int king_pawn_shield(board_t* board, color_t turn, material_info_t enemy_materia
     return (int)((-penalty - uncastled_penalty - open_file_vs_king) * pawn_shield_w);
 }
 
+bool is_passed(board_t* board, square_t sq, color_t color)
+{
+    color_t opp = color == WHITE ? BLACK : WHITE;
+    int dir = color == WHITE ? 1 : -1;
+
+    for (int r = sq.rank + dir; r >= 0 && r < 8; r += dir)
+    {
+        for (int f = sq.file - 1; f <= sq.file + 1; f++)
+        {
+            if (f < 0 || f > 7) continue;
+            piece_t piece = board->squares[8 * sq.rank + sq.file];
+            if (piece_type(piece) == PAWN && piece_color(piece) == opp)
+                return false;
+        }
+    }
+    return true;
+}
+
+bool is_isolated(board_t* board, square_t sq, color_t color)
+{
+    for (int f = sq.file - 1; f <= sq.file + 1; f++)
+    {
+        if (f < 0 || f > 7) continue;
+        if (file_has_pawn(board, sq.file, color))
+            return false;
+    }
+    return true;
+}
+
+int eval_pawns(board_t* board, color_t turn)
+{
+    static int passed_pawn_bonus[8] = {0, 0, 15, 30, 50, 80, 120, 0};
+    static const int isolated_penalty = -20;
+    // static int isolated_penalty[9] = {0, -10, -25, -50, -75, -75, -75, -75, -75};
+
+    int score = 0;
+    int nb_isolated = 0;
+    
+    for (int sq = 0; sq < 64; sq++)
+    {
+        piece_t p = board->squares[sq];
+        if (piece_type(p) != PAWN || piece_color(p) != turn) continue;
+        
+        square_t sq2 = idx_to_square(sq);
+        int sq_from_promo = turn == WHITE ? sq2.rank : 7 - sq2.rank;
+
+        if (is_passed(board, sq2, turn))
+            score += passed_pawn_bonus[sq_from_promo];
+
+        if (is_isolated(board, sq2, turn))
+            nb_isolated++;
+    }
+    
+    return score + isolated_penalty * nb_isolated;
+}
+
 int eval_piece_tables(board_t* board, color_t turn, float endgame_t)
 {
     int value = 0;
@@ -211,7 +267,6 @@ void get_material_info(material_info_t* info, board_t* board, color_t color)
 
 int evaluate(board_t* board)
 {
-
     evaluation_data_t white_eval = {0};
     evaluation_data_t black_eval = {0};
 
@@ -224,6 +279,7 @@ int evaluate(board_t* board)
     white_eval.material_score = white_material.material_score;
     black_eval.material_score = black_material.material_score;
 
+    // bishop pair bonus
     if (white_material.num_bishops >= 2)
         white_eval.material_score += 30;
 
@@ -238,6 +294,9 @@ int evaluate(board_t* board)
 
     white_eval.pawn_shield_score = king_pawn_shield(board, WHITE, black_material, black_eval.piece_square_score);
     black_eval.pawn_shield_score = king_pawn_shield(board, BLACK, white_material, white_eval.piece_square_score);
+
+    white_eval.pawn_score = eval_pawns(board, WHITE);
+    black_eval.pawn_score = eval_pawns(board, BLACK);
 
     int sign = board->turn == WHITE ? 1 : -1;
     int eval = evaluation_data_sum(&white_eval) - evaluation_data_sum(&black_eval);
