@@ -8,6 +8,7 @@
 #include "squares.h"
 #include "debug.h"
 #include "search.h"
+#include "evaluation.h"
 
 static move_t parse_uci_move(board_t* board, const char* s)
 {
@@ -178,6 +179,10 @@ void uci_loop()
         else if (strncmp(line, "position", 8) == 0)
         {
             parse_position(&ctx.board, line);
+        }
+        else if (strncmp(line, "eval", 4) == 0)
+        {
+            printf("eval %d\n", evaluate(&ctx.board));
         }
         else if (strncmp(line, "go", 2) == 0)
         {
