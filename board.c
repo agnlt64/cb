@@ -10,10 +10,10 @@
 #include "movegen.h"
 #include "attacks.h"
 
-uint64_t zobrist_from_board(board_t *board)
+uint64_t zobrist_from_board(board_t* board)
 {
     uint64_t new_key = 0;
-    zobrist_t *z = &board->zobrist;
+    zobrist_t* z = &board->zobrist;
 
     for (size_t sq = 0; sq < 64; sq++)
     {
@@ -33,7 +33,7 @@ uint64_t zobrist_from_board(board_t *board)
     return new_key;
 }
 
-void board_init(board_t *board)
+void board_init(board_t* board)
 {
     board_from_fen(board, DEFAULT_FEN);
     board->turn = WHITE;
@@ -42,7 +42,7 @@ void board_init(board_t *board)
     board->hash = zobrist_from_board(board);
 }
 
-void board_from_fen(board_t *board, const char *fen)
+void board_from_fen(board_t* board, const char* fen)
 {
     memset(board, 0, sizeof(*board));
     int file = 0;
@@ -50,9 +50,9 @@ void board_from_fen(board_t *board, const char *fen)
     int space_count = 0;
     board->ep_square_idx = -1;
 
-    for (const char *p = fen; *p != '\0'; p++)
+    for (const char* p = fen;* p != '\0'; p++)
     {
-        char c = *p;
+        char c =* p;
         if (c == ' ')
             space_count++;
 
@@ -72,7 +72,7 @@ void board_from_fen(board_t *board, const char *fen)
                 {
                     int color = isupper(c) ? WHITE : BLACK;
                     int type = CHAR_TO_PIECE[tolower(c)];
-                    int sq_idx = rank * RANKS + file;
+                    int sq_idx = rank*  RANKS + file;
                     if (type == KING)
                         board->king_sq[COLOR_IDX(color)] = sq_idx;
                     board->squares[sq_idx] = type | color;
@@ -117,48 +117,48 @@ void board_from_fen(board_t *board, const char *fen)
             else if (islower(c))
             {
                 ep_file = c - 'a';
-                ep_rank = *(p + 1) - '1';
-                board->ep_square_idx = ep_rank * RANKS + ep_file;
+                ep_rank =* (p + 1) - '1';
+                board->ep_square_idx = ep_rank*  RANKS + ep_file;
             }
         }
 
         // half move
         if (space_count == 4 && isdigit(c))
-            board->halfmove = board->halfmove * 10 + (c - '0');
+            board->halfmove = board->halfmove*  10 + (c - '0');
 
         // full move
         if (space_count == 5 && isdigit(c))
-            board->fullmove = board->fullmove * 10 + (c - '0');
+            board->fullmove = board->fullmove*  10 + (c - '0');
     }
 
     zobrist_init(&board->zobrist);
     board->hash = zobrist_from_board(board);
 }
 
-piece_t board_at(board_t *board, square_t sq)
+piece_t board_at(board_t* board, square_t sq)
 {
     return board->squares[square_to_idx(sq)];
 }
 
-void board_print(board_t *b)
+void board_print(board_t* b)
 {
     for (int rank = RANKS - 1; rank >= 0; rank--)
     {
         for (int file = 0; file < FILES; file++)
         {
-            int piece = b->squares[rank * RANKS + file];
+            int piece = b->squares[rank*  RANKS + file];
             printf("%c ", piece_string(piece));
         }
         printf("\n");
     }
 }
 
-void board_flip_turn(board_t *board)
+void board_flip_turn(board_t* board)
 {
     board->turn = board->turn == WHITE ? BLACK : WHITE;
 }
 
-static int perft_inner(board_t *board, int depth)
+static int perft_inner(board_t* board, int depth)
 {
     if (depth == 0)
         return 1;
@@ -176,7 +176,7 @@ static int perft_inner(board_t *board, int depth)
     return num_pos;
 }
 
-int board_perft(board_t *board, int depth, bool verbose)
+int board_perft(board_t* board, int depth, bool verbose)
 {
     if (depth == 0)
         return 1;
@@ -202,13 +202,13 @@ int board_perft(board_t *board, int depth, bool verbose)
     return num_pos;
 }
 
-void board_make_move(board_t *board, move_t move)
+void board_make_move(board_t* board, move_t move)
 {
     int from = MOVE_FROM(move);
     int to = MOVE_TO(move);
     int flag = MOVE_FLAGS(move);
     piece_t moving = board->squares[from];
-    zobrist_t *z = &board->zobrist;
+    zobrist_t* z = &board->zobrist;
 
     if (piece_type(moving) == NO_PIECE || piece_color(moving) != board->turn)
     {
@@ -334,7 +334,7 @@ void board_make_move(board_t *board, move_t move)
     board->hash ^= z->turn;
 }
 
-void board_unmake_move(board_t *board, move_t move)
+void board_unmake_move(board_t* board, move_t move)
 {
     int from = MOVE_FROM(move);
     int to = MOVE_TO(move);
@@ -421,12 +421,11 @@ void order_moves(board_t* board, move_t* moves, int moves_size, killer_t* killer
 
         if (is_capture)
         {
-            int capture_material_delta = piece_value(captured_piece_type) - value;
-            bool can_opp_recapture = is_square_attacked(board, idx_to_square(target_sq), opp);
-            if (can_opp_recapture)
-                score += (capture_material_delta >= 0 ? 8000000 : 2000000) + capture_material_delta;
+            int see_val = see(board, move);
+            if (see_val >= 0)
+                score += 8000000 + see_val;
             else
-                score += 8000000 + capture_material_delta;
+                score -= 2000000 - see_val;
         }
 
         if (move_piece_type == PAWN)
@@ -470,11 +469,4 @@ void order_moves(board_t* board, move_t* moves, int moves_size, killer_t* killer
         moves[j + 1] = m;
         scores[j + 1] = s;
     }
-}
-
-int find_lva(square_t* squares, int to, color_t side)
-{
-    int lva = -1;
-
-    return lva;
 }

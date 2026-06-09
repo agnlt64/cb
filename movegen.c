@@ -6,7 +6,7 @@
 #include "squares.h"
 #include "attacks.h"
 
-int gen_king_moves(board_t *board, int sq, move_t *moves)
+int gen_king_moves(board_t* board, int sq, move_t* moves)
 {
     piece_t p = board->squares[sq];
     assert(piece_type(p) == KING && "invalid piece type for gen_king_moves");
@@ -19,7 +19,7 @@ int gen_king_moves(board_t *board, int sq, move_t *moves)
     for (size_t i = 0; i < 8; i++)
     {
         int target = sq + king_offsets[i];
-        if (target < 0 || target >= FILES * RANKS)
+        if (target < 0 || target >= FILES*  RANKS)
             continue;
 
         if ((target % FILES) - sq_file != king_file_offsets[i])
@@ -77,7 +77,7 @@ int gen_king_moves(board_t *board, int sq, move_t *moves)
     return count;
 }
 
-int gen_knight_moves(board_t *board, int sq, move_t *moves)
+int gen_knight_moves(board_t* board, int sq, move_t* moves)
 {
     piece_t p = board->squares[sq];
     assert(piece_type(p) == KNIGHT && "invalid piece type for gen_knight_moves");
@@ -90,7 +90,7 @@ int gen_knight_moves(board_t *board, int sq, move_t *moves)
     for (size_t i = 0; i < 8; i++)
     {
         int target = sq + knight_offsets[i];
-        if (target < 0 || target >= FILES * RANKS)
+        if (target < 0 || target >= FILES*  RANKS)
             continue;
 
         if ((target % FILES) - sq_file != knight_file_offsets[i])
@@ -107,7 +107,7 @@ int gen_knight_moves(board_t *board, int sq, move_t *moves)
     return count;
 }
 
-int gen_diag_moves(board_t *board, int sq, move_t *moves)
+int gen_diag_moves(board_t* board, int sq, move_t* moves)
 {
     piece_t p = board->squares[sq];
     if (piece_color(p) != board->turn)
@@ -125,7 +125,7 @@ int gen_diag_moves(board_t *board, int sq, move_t *moves)
             int next = curr + diag_offsets[d];
             int next_file = next % FILES;
 
-            if (next < 0 || next >= FILES * RANKS)
+            if (next < 0 || next >= FILES*  RANKS)
                 break; // out of board
 
             if (next_file - curr_file != diag_file_offsets[d])
@@ -149,7 +149,7 @@ int gen_diag_moves(board_t *board, int sq, move_t *moves)
     return count;
 }
 
-int gen_orth_moves(board_t *board, int sq, move_t *moves)
+int gen_orth_moves(board_t* board, int sq, move_t* moves)
 {
     piece_t p = board->squares[sq];
     if (piece_color(p) != board->turn)
@@ -167,7 +167,7 @@ int gen_orth_moves(board_t *board, int sq, move_t *moves)
             int next = curr + orth_offsets[d];
             int next_file = next % FILES;
 
-            if (next < 0 || next >= FILES * RANKS)
+            if (next < 0 || next >= FILES*  RANKS)
                 break; // out of board
 
             if (next_file - curr_file != orth_file_offsets[d])
@@ -191,7 +191,7 @@ int gen_orth_moves(board_t *board, int sq, move_t *moves)
     return count;
 }
 
-int gen_pawn_moves(board_t *board, int sq, move_t *moves)
+int gen_pawn_moves(board_t* board, int sq, move_t* moves)
 {
     piece_t p = board->squares[sq];
     assert(piece_type(p) == PAWN && "invalid piece type for gen_pawn_moves");
@@ -207,7 +207,7 @@ int gen_pawn_moves(board_t *board, int sq, move_t *moves)
     int promo_rank = (board->turn == WHITE) ? 7 : 0;
 
     int fwd = sq + push;
-    if (fwd >= 0 && fwd < FILES * RANKS && piece_type(board->squares[fwd]) == NO_PIECE)
+    if (fwd >= 0 && fwd < FILES*  RANKS && piece_type(board->squares[fwd]) == NO_PIECE)
     {
         if (fwd / RANKS == promo_rank)
         {
@@ -222,7 +222,7 @@ int gen_pawn_moves(board_t *board, int sq, move_t *moves)
 
             if (sq_rank == start_rank)
             {
-                int fwd2 = sq + 2 * push;
+                int fwd2 = sq + 2*  push;
                 if (piece_type(board->squares[fwd2]) == NO_PIECE)
                     moves[count++] = MOVE_ENCODE(sq, fwd2, FLAG_QUIET, NO_PIECE);
             }
@@ -235,7 +235,7 @@ int gen_pawn_moves(board_t *board, int sq, move_t *moves)
     for (int i = 0; i < 2; i++)
     {
         int target = sq + cap_offsets[i];
-        if (target < 0 || target >= FILES * RANKS)
+        if (target < 0 || target >= FILES*  RANKS)
             continue;
         if ((target % FILES) - sq_file != cap_file_offsets[i])
             continue; // wrap
@@ -270,11 +270,11 @@ int gen_pawn_moves(board_t *board, int sq, move_t *moves)
     return count;
 }
 
-int gen_pseudo_legal_moves(board_t *board, move_t *moves)
+int gen_pseudo_legal_moves(board_t* board, move_t* moves)
 {
     int count = 0;
 
-    for (size_t sq = 0; sq < FILES * RANKS; sq++)
+    for (size_t sq = 0; sq < FILES*  RANKS; sq++)
     {
         piece_t p = board->squares[sq];
         if (piece_color(p) != board->turn)
@@ -310,14 +310,14 @@ int gen_pseudo_legal_moves(board_t *board, move_t *moves)
     return count;
 }
 
-bool board_in_check(board_t *board)
+bool board_in_check(board_t* board)
 {
     int king_sq = FIND_KING(board, board->turn);
     return is_square_attacked(board, idx_to_square(king_sq), board->turn == WHITE ? BLACK : WHITE);
 }
 
 // to_explore will be in first position in the moves array
-int gen_legal_moves(board_t *board, move_t *moves, move_t to_explore)
+int gen_legal_moves(board_t* board, move_t* moves, move_t to_explore)
 {
     move_t pseudo[512];
     int n = gen_pseudo_legal_moves(board, pseudo);
@@ -344,7 +344,7 @@ int gen_legal_moves(board_t *board, move_t *moves, move_t to_explore)
     return count;
 }
 
-int gen_capture_moves(board_t *board, move_t *moves)
+int gen_capture_moves(board_t* board, move_t* moves)
 {
     move_t m[512];
     int n = gen_legal_moves(board, m, 0);

@@ -4,7 +4,7 @@
 
 int square_to_idx(square_t sq)
 {
-    return sq.rank * 8 + sq.file;
+    return sq.rank*  8 + sq.file;
 }
 
 square_t idx_to_square(int idx)

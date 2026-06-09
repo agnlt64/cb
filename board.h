@@ -57,4 +57,3 @@ void board_unmake_move(board_t* board, move_t move);
 uint64_t zobrist_from_board(board_t* board);
 
 void order_moves(board_t* board, move_t* moves, int moves_size, killer_t* killers, int depth, bool q_search, move_t pv_move, int history[64][64]);
-int find_lva(square_t* squares, int to, color_t side);

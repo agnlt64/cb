@@ -15,7 +15,7 @@
 void search_ctx_init(search_ctx_t* ctx)
 {
     memset(ctx, 0, sizeof(*ctx));
-    ctx->tt = malloc(TT_SIZE * sizeof(tt_entry_t));
+    ctx->tt = malloc(TT_SIZE*  sizeof(tt_entry_t));
 }
 
 void search_ctx_destroy(search_ctx_t* ctx)
@@ -58,6 +58,9 @@ int quiescence_search(search_ctx_t* ctx, int alpha, int beta)
         if (ctx->canceled)
             return alpha;
         move_t move = capture_moves[i];
+        if (see(&ctx->board, move) < 0)
+            continue; // skip losing captures
+
         board_make_move(&ctx->board, move);
         eval = -quiescence_search(ctx, -beta, -alpha);
         board_unmake_move(&ctx->board, move);
@@ -153,7 +156,7 @@ int negamax(search_ctx_t* ctx, int depth, int alpha, int beta, int ply)
     if (depth <= 6 && !board_in_check(&ctx->board))
     {
         int static_eval = evaluate(&ctx->board);
-        if (static_eval - 150 * depth >= beta)
+        if (static_eval - 150*  depth >= beta)
             return static_eval;
     }
 
@@ -236,11 +239,11 @@ int negamax(search_ctx_t* ctx, int depth, int alpha, int beta, int ply)
             // history heuristics
             if (MOVE_FLAGS(move) != FLAG_CAPTURE)
             {
-                int bonus = depth * depth;
+                int bonus = depth*  depth;
                 int clamped_bonus = CLAMP(bonus, -MAX_HISTORY, MAX_HISTORY);
                 int from = MOVE_FROM(move);
                 int to = MOVE_TO(move);
-                ctx->history[from][to] += clamped_bonus - ctx->history[from][to] * abs(clamped_bonus) / MAX_HISTORY;
+                ctx->history[from][to] += clamped_bonus - ctx->history[from][to]*  abs(clamped_bonus) / MAX_HISTORY;
             }
 
             int stored = beta;
@@ -271,7 +274,7 @@ int negamax(search_ctx_t* ctx, int depth, int alpha, int beta, int ply)
 // root_search handles ONLY the root node. It:
 //   - never cuts off via TT or null move (we must produce an actual best move)
 //   - calls negamax for child nodes (never recurses on itself)
-//   - always writes *best_move_out before returning, so the caller never reads
+//   - always writes* best_move_out before returning, so the caller never reads
 //     an uninitialized move or "a1a1" (move_t = 0).
 int root_search(search_ctx_t* ctx, int depth, int alpha, int beta, move_t* best_move_out)
 {

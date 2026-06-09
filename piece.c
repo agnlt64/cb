@@ -31,7 +31,7 @@ int piece_value(piece_t piece)
 int piece_square_value(piece_t piece, int sq)
 {
     int idx = piece_color(piece) == WHITE ? sq : flip_square_idx(sq);
-    // int endgame_material = piece_value(ROOK) * 2 + piece_value(KNIGHT) + piece_value(BISHOP);
+    // int endgame_material = piece_value(ROOK)*  2 + piece_value(KNIGHT) + piece_value(BISHOP);
 
     switch (piece_type(piece))
     {

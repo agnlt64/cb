@@ -5,6 +5,8 @@
 #include "squares.h"
 #include "piece.h"
 #include "board.h"
+#include "attacks.h"
+#include "movegen.h"
 
 static bool is_piece_at_square(board_t* board, square_t sq, piece_t piece)
 {

@@ -22,11 +22,11 @@ void init_pawn_shields()
 
             int wr = rank + 1;
             if (wr >= 0 && wr < 8)
-                pawn_shield_squares_white[sq].squares[wc++] = wr * 8 + f;
+                pawn_shield_squares_white[sq].squares[wc++] = wr*  8 + f;
 
             int br = rank - 1;
             if (br >= 0 && br < 8)
-                pawn_shield_squares_black[sq].squares[bc++] = br * 8 + f;
+                pawn_shield_squares_black[sq].squares[bc++] = br*  8 + f;
         }
 
         // BACK row (rank+2 for white, rank-2 for black) — fallback
@@ -36,11 +36,11 @@ void init_pawn_shields()
 
             int wr = rank + 2;
             if (wr >= 0 && wr < 8)
-                pawn_shield_squares_white[sq].squares[wc++] = wr * 8 + f;
+                pawn_shield_squares_white[sq].squares[wc++] = wr*  8 + f;
 
             int br = rank - 2;
             if (br >= 0 && br < 8)
-                pawn_shield_squares_black[sq].squares[bc++] = br * 8 + f;
+                pawn_shield_squares_black[sq].squares[bc++] = br*  8 + f;
         }
 
         pawn_shield_squares_white[sq].length = wc;
