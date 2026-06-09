@@ -9,6 +9,7 @@
 #include "debug.h"
 #include "search.h"
 #include "evaluation.h"
+#include "movegen.h"
 
 static move_t parse_uci_move(board_t* board, const char* s)
 {

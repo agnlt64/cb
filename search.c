@@ -6,6 +6,8 @@
 #include "search.h"
 #include "board.h"
 #include "evaluation.h"
+#include "movegen.h"
+#include "attacks.h"
 #include "precomputed_eval_data.h"
 
 #define MAX_HISTORY 16384

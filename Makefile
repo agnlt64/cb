@@ -3,11 +3,13 @@ LDFLAGS=-lm
 SRC=board.c piece.c square.c move.c zobrist.c tt.c  \
 	mt19937-64.c evaluation.c pieces_tables.c       \
 	precomputed_move_data.c precomputed_eval_data.c \
-	debug.c uci.c killer.c search.c
+	debug.c uci.c killer.c search.c                 \
+	movegen.c attacks.c
 HEAD=board.h piece.h square.h move.h zobrist.h tt.h  \
 	 mt19937-64.h evaluation.h pieces_tables.h       \
 	 precomputed_move_data.h precomputed_eval_data.h \
-	 debug.h uci.h killer.h search.h
+	 debug.h uci.h killer.h search.h common.h        \
+	 movegen.h attacks.h
 
 OBJ_DIR=bin/obj
 OBJ_DEBUG=$(patsubst %.c, $(OBJ_DIR)/debug/%.o, $(SRC))
