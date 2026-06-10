@@ -204,8 +204,8 @@ int negamax(search_ctx_t* ctx, int depth, int alpha, int beta, int ply)
         int new_depth = depth - 1 + extension;
 
         // late move reduction
-        bool is_late = depth >= 3 && i >= 3 && extension == 0 && MOVE_FLAGS(move) != FLAG_CAPTURE && MOVE_FLAGS(move) != FLAG_EP;
-        int reduction = is_late ? 1 : 0;
+        bool can_reduce = extension == 0 && MOVE_FLAGS(move) != FLAG_CAPTURE && MOVE_FLAGS(move) != FLAG_EP;
+        int reduction = can_reduce ? (int)(log(depth) * log(i + 1) / 2.0) : 0;
 
         if (i == 0)
         {
@@ -314,8 +314,8 @@ int root_search(search_ctx_t* ctx, int depth, int alpha, int beta, move_t* best_
         int extension = get_extension(&ctx->board, move);
         int new_depth = depth - 1 + extension;
 
-        bool is_late = depth >= 3 && i >= 3 && extension == 0 && MOVE_FLAGS(move) != FLAG_CAPTURE && MOVE_FLAGS(move) != FLAG_EP;
-        int reduction = is_late ? 1 : 0;
+        bool can_reduce = extension == 0 && MOVE_FLAGS(move) != FLAG_CAPTURE && MOVE_FLAGS(move) != FLAG_EP;
+        int reduction = can_reduce ? (int)(log(depth) * log(i + 1) / 2.0) : 0;
 
         int eval;
         if (i == 0)
