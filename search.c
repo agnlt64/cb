@@ -149,10 +149,6 @@ int negamax(search_ctx_t* ctx, int depth, int alpha, int beta, int ply)
         }
     }
 
-    // internal iterative reduction
-    if (tt_move == 0 && depth >= 4)
-        depth--;
-
     if (depth == 0)
         return quiescence_search(ctx, alpha, beta);
 
@@ -166,7 +162,8 @@ int negamax(search_ctx_t* ctx, int depth, int alpha, int beta, int ply)
 
     order_moves(&ctx->board, moves, n, ctx->killers, depth, false, tt_move, ctx->history);
 
-    int fp_static_eval = (depth == 1 && !board_in_check(&ctx->board)) ? evaluate(&ctx->board) : 0;
+    bool apply_fp = depth == 1 && !board_in_check(&ctx->board);
+    int fp_static_eval = apply_fp ? evaluate(&ctx->board) : 0;
 
     // null move pruning
     if (depth >= 3 && !board_in_check(&ctx->board))
@@ -205,7 +202,7 @@ int negamax(search_ctx_t* ctx, int depth, int alpha, int beta, int ply)
         move_t move = moves[i];
 
         // forward futility pruning: skip quiet moves at depth 1 that can't raise alpha
-        if (depth == 1 && i > 0 && fp_static_eval > 0
+        if (apply_fp && i > 0
             && MOVE_FLAGS(move) != FLAG_CAPTURE && MOVE_FLAGS(move) != FLAG_EP
             && fp_static_eval + 150 < alpha)
             continue;
