@@ -439,7 +439,7 @@ void order_moves(board_t* board, move_t* moves, int moves_size, killer_t* killer
             int from_score = piece_square_value(move_piece, start_sq);
             score += to_score - from_score;
 
-            if (is_square_attacked(board, idx_to_square(target_sq), opp))
+            if (!is_capture && is_square_attacked(board, idx_to_square(target_sq), opp))
                 score -= 50;
         }
 
