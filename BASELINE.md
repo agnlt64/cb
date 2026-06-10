@@ -3,6 +3,18 @@ All tests were executed on my M5 Macbook Pro (macOS Tahoe 26.5), unless other ha
 
 ## Baseline 2026-06-10
 
+- commit `8547f19`
+- TC: 10+0.1
+- book: `UHO_4060_v2.epd`
+- 200 games vs previous version
+- result: Elo difference: -16.5 +/- 29.7, LOS: 13.8 %, DrawRatio: 24.3 %
+- timeout: 0 total
+- concurrency: 4 games at a time
+
+**note**: wtf
+
+## Baseline 2026-06-10
+
 - commit `1a65b04`
 - TC: 10+0.1
 - book: `UHO_4060_v2.epd`
