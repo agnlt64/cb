@@ -149,6 +149,10 @@ int negamax(search_ctx_t* ctx, int depth, int alpha, int beta, int ply)
         }
     }
 
+    // internal iterative reduction
+    if (tt_move == 0 && depth >= 4)
+        depth--;
+
     if (depth == 0)
         return quiescence_search(ctx, alpha, beta);
 
@@ -197,6 +201,17 @@ int negamax(search_ctx_t* ctx, int depth, int alpha, int beta, int ply)
         if (ctx->canceled) return alpha;
 
         move_t move = moves[i];
+
+        // forward futility pruning
+        if (depth == 1 && !board_in_check(&ctx->board) && i > 0)
+        {
+            int static_eval = evaluate(&ctx->board);
+            // if position with one more pawn is less than alpha,
+            // it's not worth continuing
+            if (static_eval + 150 < alpha)
+                continue;
+        }
+
         board_make_move(&ctx->board, move);
 
         int eval;

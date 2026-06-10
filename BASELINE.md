@@ -3,10 +3,22 @@ All tests were executed on my M5 Macbook Pro (macOS Tahoe 26.5), unless other ha
 
 ## Baseline 2026-06-10
 
+- commit `1a65b04`
+- TC: 10+0.1
+- book: `UHO_4060_v2.epd`
+- 200 games vs previous version
+- result: Elo difference: -5.2 +/- 42.0, LOS: 40.4 %, DrawRatio: 24.5 %
+- timeout: 0 total
+- concurrency: 4 games at a time
+
+**note**: the match result is useless, but i assume that the patch is good.
+
+## Baseline 2026-06-10
+
 - commit `3cfa58e`
 - TC: 10+0.1
 - book: `UHO_4060_v2.epd`
-- 400 games Stockfish Level 4
+- 400 games vs Stockfish Level 4
 - result: Elo difference: -20.0 +/- 33.8, LOS: 12.2 %, DrawRatio: 2.3 %
 - timeout: 0 total
 - concurrency: 4 games at a time
