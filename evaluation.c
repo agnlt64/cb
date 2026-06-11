@@ -12,7 +12,7 @@
 
 int evaluation_data_sum(evaluation_data_t* data)
 {
-    return data->material_score + data->mop_up_score + data->pawn_score + data->pawn_shield_score + data->piece_square_score;
+    return data->material_score + data->mop_up_score + data->pawn_score + data->pawn_shield_score + data->piece_square_score + data->rook_score;
 }
 
 int count_material(board_t* board, color_t color)
@@ -74,11 +74,11 @@ int mop_up(board_t* board, color_t turn, material_info_t my_material, material_i
     return 0;
 }
 
-static bool file_has_pawn(board_t* board, int file, color_t color)
+bool internal__file_has_pawn(board_t* board, int file, color_t color)
 {
     for (int rank = 0; rank < 8; rank++)
     {
-        piece_t piece = board->squares[8*  rank + file];
+        piece_t piece = board->squares[8 * rank + file];
         if (piece_type(piece) == PAWN && piece_color(piece) == color)
             return true;
     }
@@ -132,10 +132,10 @@ int king_pawn_shield(board_t* board, color_t turn, material_info_t enemy_materia
         {
             bool is_king_file = attack_file == king_file;
 
-            if (!file_has_pawn(board, attack_file, opp))
+            if (!internal__file_has_pawn(board, attack_file, opp))
             {
                 open_file_vs_king += is_king_file ? 25 : 15;
-                if (!file_has_pawn(board, attack_file, turn))
+                if (!internal__file_has_pawn(board, attack_file, turn))
                     open_file_vs_king += is_king_file ? 15 : 10;
             }
         }
@@ -159,7 +159,7 @@ bool is_passed(board_t* board, square_t sq, color_t color)
         for (int f = sq.file - 1; f <= sq.file + 1; f++)
         {
             if (f < 0 || f > 7) continue;
-            piece_t piece = board->squares[8*  sq.rank + sq.file];
+            piece_t piece = board->squares[8 * r + f];
             if (piece_type(piece) == PAWN && piece_color(piece) == opp)
                 return false;
         }
@@ -172,7 +172,7 @@ bool is_isolated(board_t* board, square_t sq, color_t color)
     for (int f = sq.file - 1; f <= sq.file + 1; f++)
     {
         if (f < 0 || f > 7) continue;
-        if (file_has_pawn(board, sq.file, color))
+        if (internal__file_has_pawn(board, f, color))
             return false;
     }
     return true;
@@ -182,7 +182,6 @@ int eval_pawns(board_t* board, color_t turn)
 {
     static int passed_pawn_bonus[8] = {0, 0, 15, 30, 50, 80, 120, 0};
     static const int isolated_penalty = -20;
-    // static int isolated_penalty[9] = {0, -10, -25, -50, -75, -75, -75, -75, -75};
 
     int score = 0;
     int nb_isolated = 0;
@@ -265,6 +264,32 @@ void get_material_info(material_info_t* info, board_t* board, color_t color)
     new_material_info(info, num_pawns, num_knights, num_bishops, num_rooks, num_queens);
 }
 
+int eval_rooks(board_t* board, color_t color)
+{
+    color_t opp = color == WHITE ? BLACK : WHITE;
+    int bonus = 0;
+
+    for (int sq = 0; sq < 64; sq++)
+    {
+        piece_t p = board->squares[sq];
+        if (piece_type(p) != ROOK || piece_color(p) != color) continue;
+
+        square_t sq2 = idx_to_square(sq);
+        // 7th or 2nd rank
+        int goal_rank = color == WHITE ? 6 : 1;
+        if (sq2.rank == goal_rank)
+            bonus += 50;
+
+        if (!internal__file_has_pawn(board, sq2.file, color))
+        {
+            bonus += 25;
+            if (!internal__file_has_pawn(board, sq2.file, opp))
+                bonus += 20;
+        }
+    }
+    return bonus;
+}
+
 int evaluate(board_t* board)
 {
     evaluation_data_t white_eval = {0};
@@ -297,6 +322,9 @@ int evaluate(board_t* board)
 
     white_eval.pawn_score = eval_pawns(board, WHITE);
     black_eval.pawn_score = eval_pawns(board, BLACK);
+
+    white_eval.rook_score = eval_rooks(board, WHITE);
+    black_eval.rook_score = eval_rooks(board, BLACK);
 
     int sign = board->turn == WHITE ? 1 : -1;
     int eval = evaluation_data_sum(&white_eval) - evaluation_data_sum(&black_eval);
