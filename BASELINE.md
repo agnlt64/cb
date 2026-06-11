@@ -1,6 +1,26 @@
 # Engine evolution overtime
 All tests were executed on my M5 Macbook Pro (macOS Tahoe 26.5), unless other hardware is mentioned. Games were played using `cutechess-cli` version 1.4.0 built from [source](https://github.com/cutechess/cutechess).
 
+## Baseline 2026-06-11
+
+- commit `4ca0c98`
+- TC: 10+0.1
+- book: `UHO_4060_v2.epd`
+- 400 games vs Stockfish Level 4
+- result: Elo difference: -20.9 +/- 33.5, LOS: 11.0 %, DrawRatio: 4.0 %
+- timeout: 0 total
+- concurrency: 4 games at a time
+
+## Baseline 2026-06-11
+
+- commit `4ca0c98`
+- TC: 10+0.1
+- book: `UHO_4060_v2.epd`
+- 200 games vs previous version
+- result: Elo difference: 59.6 +/- 42.3, LOS: 99.7 %, DrawRatio: 25.0 %
+- timeout: 0 total
+- concurrency: 4 games at a time
+
 ## Baseline 2026-06-10
 
 - commit `88baa8c`
