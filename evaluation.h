@@ -9,6 +9,7 @@ typedef struct evaluation_data {
     int rook_score;
     int pawn_shield_score;
     int mop_up_score;
+    int mobility_score;
 } evaluation_data_t;
 
 typedef struct material_info {

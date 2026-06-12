@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#include "common.h"
 #include "evaluation.h"
 #include "piece.h"
 #include "pieces_tables.h"
@@ -12,7 +13,7 @@
 
 int evaluation_data_sum(evaluation_data_t* data)
 {
-    return data->material_score + data->mop_up_score + data->pawn_score + data->pawn_shield_score + data->piece_square_score + data->rook_score;
+    return data->material_score + data->mop_up_score + data->pawn_score + data->pawn_shield_score + data->piece_square_score + data->rook_score + data->mobility_score;
 }
 
 int count_material(board_t* board, color_t color)
@@ -290,6 +291,88 @@ int eval_rooks(board_t* board, color_t color)
     return bonus;
 }
 
+int mobility_leaper(board_t* board, int sq, const int* offsets, const int* file_offsets, int n, color_t color)
+{
+    int count = 0;
+    int sq_file = sq % 8;
+
+    for (int i = 0; i < n; i++)
+    {
+        int target = sq + offsets[i];
+        if (target < 0 || target >= 64) continue;
+        if ((target % 8) - sq_file != file_offsets[i]) continue;
+        if (piece_color(board->squares[target]) == color) continue;
+        // pseudo-legal moves, it's fine for evaluation
+        count++;
+    }
+
+    return count;
+}
+
+int mobility_slider(board_t* board, int sq, const int* offsets, const int* file_offsets, int n_dirs, color_t color)
+{
+    int count = 0;
+
+    for (int d = 0; d < n_dirs; d++)
+    {
+        int curr = sq;
+        int curr_file = curr % 8;
+        while (true)
+        {
+            int next = curr + offsets[d];
+            int next_file = next % 8;
+            if (next < 0 || next >= 64) break;
+            if (next_file - curr_file != file_offsets[d]) break;
+
+            piece_t piece = board->squares[next];
+            if (piece_color(piece) == color) break;
+            count++;
+
+            if (piece_type(piece) != NO_PIECE) break;
+            curr = next;
+            curr_file = next_file;
+        }
+    }
+
+    return count;
+}
+
+int eval_mobility(board_t* board, color_t color)
+{
+    static const int bonus[7] = {0, 0, 4, 3, 2, 1, 0};
+
+    int score = 0;
+
+    for (int sq = 0; sq < 64; sq++)
+    {
+        piece_t p = board->squares[sq];
+        if (piece_color(p) != color) continue;
+
+        int moves = 0;
+        switch (piece_type(p))
+        {
+        case KNIGHT:
+            moves = mobility_leaper(board, sq, knight_offsets, knight_file_offsets, 8, color);
+            break;
+        case BISHOP:
+            moves = mobility_slider(board, sq, diag_offsets, diag_file_offsets, 4, color);
+            break;
+        case ROOK:
+            moves = mobility_slider(board, sq, orth_offsets, orth_file_offsets, 4, color);
+            break;
+        case QUEEN:
+            moves = mobility_slider(board, sq, diag_offsets, diag_file_offsets, 4, color)
+                  + mobility_slider(board, sq, orth_offsets, orth_file_offsets, 4, color);
+            break;
+        default:
+            continue;
+        }
+        score += moves * bonus[piece_type(p)];
+    }
+
+    return score;
+}
+
 int evaluate(board_t* board)
 {
     evaluation_data_t white_eval = {0};
@@ -325,6 +408,9 @@ int evaluate(board_t* board)
 
     white_eval.rook_score = eval_rooks(board, WHITE);
     black_eval.rook_score = eval_rooks(board, BLACK);
+
+    white_eval.mobility_score = eval_mobility(board, WHITE);
+    black_eval.mobility_score = eval_mobility(board, BLACK);
 
     int sign = board->turn == WHITE ? 1 : -1;
     int eval = evaluation_data_sum(&white_eval) - evaluation_data_sum(&black_eval);
