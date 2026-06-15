@@ -7,6 +7,26 @@ All tests were executed on my M5 Macbook Pro (macOS Tahoe 26.5), unless other ha
 - TC: 10+0.1
 - book: `UHO_4060_v2.epd`
 - 400 games vs Stockfish Level 4
+- result: Elo difference: 7.8 +/- 33.6, LOS: 67.6 %, DrawRatio: 3.3 %
+- timeout: 0 total
+- concurrency: 4 games at a time
+
+## Baseline 2026-06-11
+
+- commit `02cdb1e`
+- TC: 10+0.1
+- book: `UHO_4060_v2.epd`
+- 400 games vs previous version
+- result: Elo difference: 19.1 +/- 40.0, LOS: 82.6 %, DrawRatio: 31.5 %
+- timeout: 0 total
+- concurrency: 4 games at a time
+
+## Baseline 2026-06-11
+
+- commit `de0acd4`
+- TC: 10+0.1
+- book: `UHO_4060_v2.epd`
+- 400 games vs Stockfish Level 4
 - result: Elo difference: -13.9 +/- 33.5, LOS: 20.8 %, DrawRatio: 3.5 %
 - timeout: 1 total
 - concurrency: 4 games at a time
