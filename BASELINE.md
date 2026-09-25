@@ -3,7 +3,7 @@ All tests were executed on my M5 Macbook Pro (macOS Tahoe 26.5), unless other ha
 
 ## Baseline 2026-06-11
 
-- commit `de0acd4`
+- commit `02cdb1e`
 - TC: 10+0.1
 - book: `UHO_4060_v2.epd`
 - 400 games vs Stockfish Level 4
